@@ -1,0 +1,47 @@
+# The .gitignore specifies files that should not be included when you commit or push your code.
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environments
+.env
+.venv/
+env/
+
+# data files (specific to ML projects)
+files/
+# *.h5
+# *.pkl
+# *.joblib
+# *.ckpt
+
+# Logs and caches
+*.log
+*.cache
+
+# Dash-related assets and cached data
+assets/__pycache__/
+.cache/
