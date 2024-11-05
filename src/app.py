@@ -1,7 +1,7 @@
 from dash import Dash, html, dcc, Input, Output
 import dash_bootstrap_components as dbc
 
-from components.navbar import create_navbar
+from components.navbar import create_sidenav
 from components.footer import create_footer
 from pages.home import create_home_page
 from pages.about import create_about_page
@@ -12,7 +12,7 @@ from pages.not_found_404 import create_not_found_page
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-navbar = create_navbar()
+navbar = create_sidenav()
 footer = create_footer()
 
 # Layout de l'application
