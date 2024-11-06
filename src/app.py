@@ -10,7 +10,12 @@ from pages.charts import create_charts_page
 from pages.map import create_map_page  
 from pages.not_found_404 import create_not_found_page
 
-app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+# Importer les pages de prédiction
+from pages.prediction_dpe import create_pred_dpe_page
+from pages.prediction_conso import create_pred_conso_page
+
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"])
+
 
 navbar = create_sidenav()
 footer = create_footer()
@@ -36,9 +41,26 @@ def display_page(pathname):
         return create_charts_page()  # Appelle la page Charts
     elif pathname == "/map":
         return create_map_page()  # Appelle la page Map
+    elif pathname == "/pred_dpe":
+        return create_pred_dpe_page()  # Appelle la page prédiction étiquette DPE
+    elif pathname == "/pred_conso":
+        return create_pred_conso_page()  # Appelle la page prédiction consommation énergétique
     else:
         return create_not_found_page()  # Appelle la page 404
-    
-    
+
+
+# Callback pour rediriger les boutons vers les pages de prédiction
+@app.callback(
+    Output('url', 'pathname'),  # On modifie l'URL
+    [Input('button-1', 'n_clicks'), Input('button-2', 'n_clicks')]  # Suivi des clics sur les boutons
+)
+def update_url(button1_clicks, button2_clicks):
+    if button1_clicks:  # Si le bouton "Prédiction étiquette DPE" est cliqué
+        return "/pred_dpe"
+    elif button2_clicks:  # Si le bouton "Prédiction consommation énergétique" est cliqué
+        return "/pred_conso"
+    return "/"  # Si aucun bouton n'est cliqué, on reste sur la page d'accueil
+
+
 if __name__ == '__main__':
     app.run_server(debug=True)

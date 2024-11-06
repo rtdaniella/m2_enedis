@@ -34,13 +34,13 @@ def create_context_page():
             html.Div([
                 html.Div([
                     html.I(className="fas fa-house-user", style={'fontSize': '40px', 'color': 'white'}),
-                    html.H4("Total des Entrées", style={'color': 'white', 'marginTop': '10px'}),
+                    html.H5("Total des Entrées", style={'color': 'white', 'marginTop': '10px'}),
                     html.P(f"{total_entries}", style={'color': 'white', 'fontSize': '24px', 'fontWeight': 'bold'})
                 ], style={
                     'backgroundColor': '#4CAF50',
                     'borderRadius': '10px',
                     'padding': '20px',
-                    'height': '150px',
+                    'height': '170px',
                     'width': '250px',  # Assurez-vous que toutes les cartes ont la même largeur
                     'textAlign': 'center',
                     'boxShadow': '0 4px 8px rgba(0,0,0,0.2)',
@@ -53,13 +53,13 @@ def create_context_page():
             html.Div([
                 html.Div([
                     html.I(className="fas fa-calendar-alt", style={'fontSize': '40px', 'color': 'white'}),
-                    html.H4("DPE Maximum", style={'color': 'white', 'marginTop': '10px'}),
+                    html.H5("DPE Maximum", style={'color': 'white', 'marginTop': '10px'}),
                     html.P(f"{average_dpe}", style={'color': 'white', 'fontSize': '24px', 'fontWeight': 'bold'})
                 ], style={
                     'backgroundColor': '#FF9800',
                     'borderRadius': '10px',
                     'padding': '20px',
-                    'height': '150px',
+                    'height': '170px',
                     'width': '250px',  # Assurez-vous que toutes les cartes ont la même largeur
                     'textAlign': 'center',
                     'boxShadow': '0 4px 8px rgba(0,0,0,0.2)',
@@ -72,13 +72,13 @@ def create_context_page():
             html.Div([
                 html.Div([
                     html.I(className="fas fa-map-marker-alt", style={'fontSize': '40px', 'color': 'white'}),
-                    html.H4("Total des Codes Postaux", style={'color': 'white', 'marginTop': '10px'}),
+                    html.H5("Total des Codes Postaux", style={'color': 'white', 'marginTop': '10px'}),
                     html.P(f"{total_postals}", style={'color': 'white', 'fontSize': '24px', 'fontWeight': 'bold'})
                 ], style={
                     'backgroundColor': '#2196F3',
                     'borderRadius': '10px',
                     'padding': '20px',
-                    'height': '150px',
+                    'height': '170px',
                     'width': '250px',  # Assurez-vous que toutes les cartes ont la même largeur
                     'textAlign': 'center',
                     'boxShadow': '0 4px 8px rgba(0,0,0,0.2)',

@@ -6,7 +6,14 @@ def create_home_page():
             # Bloc principal en haut
             html.Div(
                 [
-                    html.H3("Ceci est le contenu de la page d'accueil.", style={"textAlign": "center"}),
+                    html.H3("Bienvenue chez GreenTech Solutions.", style={"textAlign": "center", "marginTop":"30px"}),
+                    html.P(
+                        "À l'ère du changement climatique et de la hausse des prix de l’énergie, "
+                        "la maîtrise de la consommation énergétique devient essentielle. "
+                        "GreenTech Solutions est là pour vous accompagner grâce à des outils innovants "
+                        "permettant de prédire et de mieux comprendre vos consommations d’énergie.",
+                        style={"textAlign": "center", "margin": "40px 30px 30px 30px"}
+                    ),
                     html.Div(
                         [
                             html.Button(
@@ -14,7 +21,7 @@ def create_home_page():
                                 style={
                                     "margin": "5px",
                                     "padding": "10px 20px",
-                                    "backgroundColor": "#007BFF",
+                                    "backgroundColor": "#56b536",
                                     "color": "white",
                                     "border": "none",
                                     "borderRadius": "5px",
@@ -24,11 +31,11 @@ def create_home_page():
                                 id="button-1"
                             ),
                             html.Button(
-                                "Prédiction consommation énérgétique",
+                                "Prédiction consommation énergétique",
                                 style={
                                     "margin": "5px",
                                     "padding": "10px 20px",
-                                    "backgroundColor": "#28A745",
+                                    "backgroundColor": "#56b536",
                                     "color": "white",
                                     "border": "none",
                                     "borderRadius": "5px",
@@ -43,7 +50,7 @@ def create_home_page():
                 ],
                 style={
                     "backgroundColor": "lightgrey",
-                    "padding": "20px",
+                    "padding": "10px",
                     "boxShadow": "0 4px 8px rgba(0, 0, 0, 0.2)",
                     "marginBottom": "20px"
                 }
@@ -52,7 +59,26 @@ def create_home_page():
             html.Div(
                 [
                     html.Div(
-                        "Contenu du bloc gauche",
+                        # Texte ajouté dans le bloc gauche
+                        [
+                            html.H4("Comprendre le Diagnostic de Performance Energétique (DPE)", style={"textAlign": "center"}),
+                            html.P(
+                                "Le Diagnostic de Performance Energétique (DPE) est un outil essentiel "
+                                "qui évalue la consommation d’énergie d’un bâtiment et son impact environnemental. "
+                                "Il attribue une étiquette allant de A (très performant) à G (peu performant). ",
+                                style={"textAlign": "center", "marginTop": "20px"}
+                            ),
+                            # Ajouter une image sous le texte
+                            html.Img(
+                                src="assets/images/etiquette.png",  # Remplacez par le chemin de votre image
+                                style={
+                                    "display": "block",
+                                    "margin": "10px auto",  # Centrer l'image horizontalement
+                                    "maxWidth": "100%",  # Pour que l'image soit responsive
+                                    "height": "200px"  # Pour que l'image conserve ses proportions
+                                }
+                            ),
+                        ],
                         style={
                             "backgroundColor": "lightgrey",
                             "padding": "20px",
