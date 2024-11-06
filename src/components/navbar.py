@@ -39,11 +39,37 @@ def create_sidenav():
                         html.Hr(),
                         dbc.Nav(
                             [
-                                dbc.NavLink("Home", href="/", className="nav-link text-white", active="exact"),
-                                dbc.NavLink("Context", href="/context", className="nav-link text-white", active="exact"),
-                                dbc.NavLink("Charts", href="/charts", className="nav-link text-white", active="exact"),
-                                dbc.NavLink("Map", href="/map", className="nav-link text-white", active="exact"),
-                                dbc.NavLink("About", href="/about", className="nav-link text-white", active="exact"),
+                                dbc.NavLink(
+                                    [html.I(className="fas fa-home me-2"), "Home"],  # Icône pour "Home"
+                                    href="/",
+                                    className="nav-link text-white",
+                                    active="exact",
+                                    #style={"backgroundColor": "transparent", "color": "#ffffff"}
+                                ),
+                                dbc.NavLink(
+                                    [html.I(className="fas fa-table me-2"), "Context"],  # Icône pour "Context"
+                                    href="/context",
+                                    className="nav-link text-white",
+                                    active="exact"
+                                ),
+                                dbc.NavLink(
+                                    [html.I(className="fas fa-chart-bar me-2"), "Charts"],  # Icône pour "Charts"
+                                    href="/charts",
+                                    className="nav-link text-white",
+                                    active="exact"
+                                ),
+                                dbc.NavLink(
+                                    [html.I(className="fas fa-map-marker-alt me-2"), "Map"],  # Icône pour "Map"
+                                    href="/map",
+                                    className="nav-link text-white",
+                                    active="exact"
+                                ),
+                                dbc.NavLink(
+                                    [html.I(className="fas fa-question-circle me-2"), "About"],  # Icône pour "About"
+                                    href="/about",
+                                    className="nav-link text-white",
+                                    active="exact"
+                                ),
                             ],
                             vertical=True,
                             pills=True,
@@ -57,7 +83,7 @@ def create_sidenav():
                         "position": "fixed",
                         "padding": "15px",
                         "boxShadow": "5px 0 10px rgba(0, 0, 0, 0.5)",
-
+                
                     },
                 )
             ),

@@ -1,0 +1,20 @@
+/* Désactive le fond bleu par défaut sur les liens actifs */
+.nav-link.active {
+    background-color: transparent !important;
+    color: #ffffff !important; /* Par exemple, blanc pour le texte */
+    border-bottom: 2px solid #ffffff; /* Bordure sous le lien actif */
+}
+
+/* Style pour les liens lorsqu'ils ne sont pas actifs */
+.nav-link {
+    border-bottom: 2px solid transparent; /* Bordure transparente par défaut */
+    transition: border-color 0.3s ease; /* Transition douce pour la bordure */
+}
+
+/* Style pour les liens lorsque l'utilisateur passe la souris */
+.nav-link:hover {
+    background-color: lightgrey !important; /* Couleur de fond au survol */
+    color: #050505 !important; /* Couleur de texte au survol */
+    opacity: 0.6;
+    border-bottom: 2px solid #050505; /* Bordure visible au survol */
+}
