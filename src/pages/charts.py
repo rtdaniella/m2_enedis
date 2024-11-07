@@ -1,5 +1,4 @@
 from functools import lru_cache
-
 import pandas as pd
 import plotly.express as px
 from dash import Input, Output, callback, dcc, html
@@ -7,20 +6,36 @@ from dash import Input, Output, callback, dcc, html
 
 @lru_cache(maxsize=1)
 def load_data():
-    return pd.read_csv("src/files/dpe-nettoye.csv")
+    return pd.read_csv("src/files/dpe_nettoye.csv")
 
 
 def create_charts_page():
-    """Crée la page des graphiques avec une disposition en grille 2x2"""
-
     # Chargement des données
     df = load_data()
 
     # Liste des colonnes pour le boxplot avec labels plus lisibles
     options_boxplot = [
-        {"label": "Passoire énergétique", "value": "passoire_energetique"},
+        {"label": "Mode de chauffage", "value": "type_installation_chauffage"},
+        {"label": "Type d'énergie", "value": "type_energie_n_1"},
+        {"label": "Type de logement", "value": "logement"},
+        {"label": "Période de construction", "value": "periode_construction"},
+        {"label": "Statut 'passoire énergétique'", "value": "passoire_energetique"},
+    ]
+
+    options_piechart = [
+        {"label": "Type bâtiment", "value": "type_batiment"},
         {"label": "Période de construction", "value": "periode_construction"},
         {"label": "Type de logement", "value": "logement"},
+    ]
+
+    options_scatterplt = [
+        {"label": "A", "value": "A"},
+        {"label": "B", "value": "B"},
+        {"label": "C", "value": "C"},
+        {"label": "D", "value": "D"},
+        {"label": "E", "value": "E"},
+        {"label": "F", "value": "F"},
+        {"label": "G", "value": "G"},
     ]
 
     # Création du layout
@@ -36,21 +51,15 @@ def create_charts_page():
                     # Première ligne
                     html.Div(
                         [
-                            # Graphique 1: Distribution des types de logement
+                            # Graphique 1 : Nombre et type de DPE réalisés chaque mois
                             html.Div(
                                 [
-                                    html.H3("Répartition des types de logement"),
-                                    dcc.Graph(id="repartition_logement"),
+                                    html.H3(
+                                        "Nombre et type de DPE réalisés chaque mois"
+                                    ),
+                                    dcc.Graph(id="dpe_par_mois"),
                                 ],
-                                className="col-md-6",
-                            ),
-                            # Graphique 2: Distribution des étiquettes DPE
-                            html.Div(
-                                [
-                                    html.H3("Répartition des étiquettes DPE"),
-                                    dcc.Graph(id="distribution_dpe"),
-                                ],
-                                className="col-md-6",
+                                className="col-md-12",
                             ),
                         ],
                         className="row mb-4",
@@ -58,23 +67,31 @@ def create_charts_page():
                     # Deuxième ligne
                     html.Div(
                         [
-                            # Graphique 3: Nombre de DPE réalisés chaque mois
+                            # Graphique 2: Distribution des étiquettes DP
                             html.Div(
                                 [
-                                    html.H3("Nombre de DPE réalisés chaque mois"),
-                                    dcc.Graph(id="dpe_monthly"),
+                                    html.H3("Répartition des étiquettes DPE"),
+                                    dcc.Graph(id="distribution_dpe"),
                                 ],
                                 className="col-md-6",
                             ),
-                            # Graphique 4: Boîte à moustaches
+                            # Graphique 3: Distribution des surfaces
                             html.Div(
                                 [
-                                    html.H3("Consommation annuelle par..."),
+                                    html.H3("Distribution des surfaces des logements"),
+                                    dcc.Graph(id="distribution_surf"),
+                                ],
+                                className="col-md-6",
+                            ),
+                            # Graphique 3: Distribution des types de logement
+                            html.Div(
+                                [
+                                    html.H3("Répartition des types de logement"),
                                     # Boutons radio pour choisir la variable de regroupement
                                     dcc.RadioItems(
-                                        id="boxplot-grouping",
-                                        options=options_boxplot,
-                                        value="passoire_energetique",
+                                        id="pie_grouping",
+                                        options=options_piechart,
+                                        value="logement",
                                         inline=True,  # Disposition horizontale
                                         className="mb-3",  # Marge en bas
                                         inputStyle={
@@ -84,9 +101,55 @@ def create_charts_page():
                                             "margin-right": "15px"
                                         },  # Espace entre les options
                                     ),
-                                    dcc.Graph(id="cost-boxplot"),
+                                    dcc.Graph(id="repartition_logement"),
                                 ],
                                 className="col-md-6",
+                            ),
+                            # Graphique 4: scatter plot
+                            html.Div(
+                                [
+                                    html.H3(
+                                        "Scatter plot surface / consommation par étiquette DPE"
+                                    ),
+                                    # Boutons radio pour choisir la variable de regroupement
+                                    dcc.RadioItems(
+                                        id="scatter_grouping",
+                                        options=options_scatterplt,
+                                        value="A",
+                                        inline=True,  # Disposition horizontale
+                                        className="mb-3",  # Marge en bas
+                                        inputStyle={
+                                            "margin-right": "5px"
+                                        },  # Espace entre le bouton et le label
+                                        labelStyle={
+                                            "margin-right": "15px"
+                                        },  # Espace entre les options
+                                    ),
+                                    dcc.Graph(id="scatter_surface_conso"),
+                                ],
+                                className="col-md-6",
+                            ),
+                            # Graphique 4: Boîte à moustaches
+                            html.Div(
+                                [
+                                    html.H3("Consommation annuelle par..."),
+                                    # Boutons radio pour choisir la variable de regroupement
+                                    dcc.RadioItems(
+                                        id="boxplot_grouping",
+                                        options=options_boxplot,
+                                        value="type_installation_chauffage",
+                                        inline=True,  # Disposition horizontale
+                                        className="mb-3",  # Marge en bas
+                                        inputStyle={
+                                            "margin-right": "5px"
+                                        },  # Espace entre le bouton et le label
+                                        labelStyle={
+                                            "margin-right": "15px"
+                                        },  # Espace entre les options
+                                    ),
+                                    dcc.Graph(id="bam_conso"),
+                                ],
+                                className="col-md-12",
                             ),
                         ],
                         className="row mb-4",
@@ -96,23 +159,78 @@ def create_charts_page():
             ),
         ],
         className="p-4",
+        style={
+            "padding": "20px",
+            "marginLeft": "260px",  # Décalage pour laisser de l'espace à la SideNav
+        },
     )
 
     return layout
 
 
-@callback(Output("repartition_logement", "figure"), Input("repartition_logement", "id"))
-def update_housing_distribution(_):
+@callback(Output("dpe_par_mois", "figure"), Input("dpe_par_mois", "id"))
+def update_dpe_par_mois(_):
     df = load_data()
+
+    counts_df = (
+        df.groupby(["yearmonth", "etiquette_dpe"]).size().reset_index(name="count")
+    )
+
+    # Définition des couleurs par catégorie DPE
+    color_map_dpe = {
+        "A": "#008f35",
+        "B": "#57aa28",
+        "C": "#c8d200",
+        "D": "#fcea26",
+        "E": "#f8bb00",
+        "F": "#ea690b",
+        "G": "#e30c1c",
+    }
+
+    fig = px.bar(
+        counts_df,
+        x="yearmonth",
+        y="count",
+        color="etiquette_dpe",  # Add this to enable coloring by DPE category
+        color_discrete_map=color_map_dpe,  # Use the predefined color map
+        # title="Distribution des catégories par mois",
+        labels={
+            "yearmonth": "Date",
+            "count": "Nombre d'enregistrements",
+            "etiquette_dpe": "Etiquette DPE",
+        },
+    )
+
+    # Personnalisation du graphique
+    fig.update_layout(
+        barmode="stack",
+        xaxis_tickangle=-45,
+        bargap=0.1,
+        plot_bgcolor="white",
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
+
+    # Ajout d'une grille
+    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="lightgrey")
+
+    return fig
+
+
+@callback(Output("repartition_logement", "figure"), Input("pie_grouping", "value"))
+def update_housing_distribution(grouping_column):
+    df = load_data()
+    counts_df = df[grouping_column].value_counts().reset_index()
+    counts_df.columns = [grouping_column, "count"]
+
     fig = px.pie(
-        df["logement"].value_counts().reset_index(),
+        counts_df,
         values="count",
-        names="logement",
-        # title="Distribution des types de logement",
+        names=grouping_column,
         template="plotly_white",
         color_discrete_sequence=px.colors.qualitative.Set3,
     )
-    fig.update_traces(textposition="inside", textinfo="percent+label")
+    fig.update_traces(textposition="outside", textinfo="percent+label")
     fig.update_layout(showlegend=False, margin=dict(t=50, l=0, r=0, b=0))
     return fig
 
@@ -122,15 +240,23 @@ def update_dpe_distribution(_):
     df = load_data()
     dpe_order = ["A", "B", "C", "D", "E", "F", "G"]
     dpe_counts = df["etiquette_dpe"].value_counts().reindex(dpe_order).reset_index()
+    color_map_dpe = {
+        "A": "#008f35",
+        "B": "#57aa28",
+        "C": "#c8d200",
+        "D": "#fcea26",
+        "E": "#f8bb00",
+        "F": "#ea690b",
+        "G": "#e30c1c",
+    }
 
     fig = px.bar(
         dpe_counts,
         x="etiquette_dpe",
         y="count",
-        # title="Distribution des étiquettes DPE",
         template="plotly_white",
         color="etiquette_dpe",
-        color_discrete_sequence=px.colors.sequential.Viridis,
+        color_discrete_map=color_map_dpe,
     )
 
     fig.update_layout(
@@ -144,7 +270,30 @@ def update_dpe_distribution(_):
     return fig
 
 
-@callback(Output("cost-boxplot", "figure"), Input("boxplot-grouping", "value"))
+@callback(Output("distribution_surf", "figure"), Input("distribution_surf", "id"))
+def update_surf_distribution(_):
+    df = load_data()
+
+    fig = px.histogram(
+        df,
+        x="surface_habitable_logement",
+        nbins=30,
+        # title="Distribution des surfaces habitables",
+        template="plotly_white",
+        hover_data={"surface_habitable_logement": ":.0f"},
+    )
+
+    fig.update_layout(
+        xaxis_title="Surface habitable (m²)",
+        yaxis_title="Nombre de logements",
+        showlegend=False,
+        margin=dict(t=50, l=50, r=0, b=50),
+    )
+
+    return fig
+
+
+@callback(Output("bam_conso", "figure"), Input("boxplot_grouping", "value"))
 def update_cost_boxplot(grouping_column):
     df = load_data()
 
@@ -176,7 +325,7 @@ def update_cost_boxplot(grouping_column):
         template="plotly_white",
         color=grouping_column,
         color_discrete_sequence=px.colors.qualitative.Set2,
-        points=False,  # Enlever les outliers
+        # points=False,  # Enlever les outliers
     )
 
     # Personnalisation du titre de l'axe X selon la variable choisie
@@ -196,28 +345,51 @@ def update_cost_boxplot(grouping_column):
     return fig
 
 
-@callback(Output("dpe_monthly", "figure"), Input("dpe_monthly", "id"))
-def update_dpe_monthly(_):
+@callback(Output("scatter_surface_conso", "figure"), Input("scatter_grouping", "value"))
+def update_scatter_surface_conso(grouping_value):
     df = load_data()
-    df["timestamp_reception_dpe"] = pd.to_datetime(
-        df["timestamp_reception_dpe"], unit="s"
-    )
-    df["year_month"] = df["timestamp_reception_dpe"].dt.to_period("M").astype(str)
 
-    fig = px.bar(
-        df.groupby("year_month").size().reset_index(name="count"),
-        x="year_month",
-        y="count",
-        # title="Nombre de DPE réalisés par mois",
+    # Filtrer les données en fonction de la valeur sélectionnée
+    filtered_df = df[df["etiquette_dpe"] == grouping_value]
+
+    fig = px.scatter(
+        filtered_df,
+        x="surface_habitable_logement",
+        y="conso_5_usages_e_finale",
+        # title="Relation entre la surface habitable et la consommation énergétique",
         template="plotly_white",
-        color_discrete_sequence=["#4C78A8"],
+        color="etiquette_dpe",
+        color_discrete_map={
+            "A": "#008f35",
+            "B": "#57aa28",
+            "C": "#c8d200",
+            "D": "#fcea26",
+            "E": "#f8bb00",
+            "F": "#ea690b",
+            "G": "#e30c1c",
+        },
     )
 
     fig.update_layout(
-        xaxis_title="Année et Mois",
-        yaxis_title="Nombre de DPE",
-        showlegend=False,
+        xaxis_title="Surface habitable (m²)",
+        yaxis_title="Consommation en kWhef/an",
+        showlegend=True,
         margin=dict(t=50, l=50, r=0, b=50),
+    )
+
+    # Mettre à jour les plages des axes en fonction des valeurs min et max
+    fig.update_xaxes(
+        range=[
+            0,
+            150,
+        ]
+    )
+    fig.update_yaxes(
+        range=[
+            0,
+            30000,
+            # filtered_df["conso_5_usages_e_finale"].max(),
+        ]
     )
 
     return fig
