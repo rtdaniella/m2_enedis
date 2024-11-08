@@ -6,7 +6,7 @@ from dash import Input, Output, callback, dcc, html
 
 @lru_cache(maxsize=1)
 def load_data():
-    return pd.read_csv("src/files/dpe_nettoye.csv")
+    return pd.read_csv("src/files/dpe-nettoye.csv")
 
 
 def create_charts_page():
@@ -41,9 +41,45 @@ def create_charts_page():
     # Création du layout
     layout = html.Div(
         [
-            html.H1(
-                "Analyse des données DPE sur le département du Rhône",
-                className="text-center mb-4",
+            # Bloc du titre avec fond en dégradé bleu vif à bleu foncé
+            html.Div(
+                [
+                    html.I(
+                        className="fas fa-globe-americas",  # Icône Font Awesome
+                        style={
+                            "fontSize": "36px",
+                            "color": "#ffffff",  # Icône blanche
+                            "marginRight": "15px",
+                            "verticalAlign": "middle",
+                        },
+                    ),
+                    html.H1(
+                        "Analyse DPE dans le Rhône",
+                        style={
+                            "color": "#ffffff",  # Couleur du texte en blanc
+                            "fontSize": "32px",  # Taille de police plus grande
+                            "fontFamily": "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",  # Typographie moderne
+                            "fontWeight": "bold",
+                            "display": "inline-block",  # Affichage en bloc pour centrer le texte
+                            "lineHeight": "1.2",  # Un peu plus d'espace entre les lignes
+                            "textAlign": "center",  # Centrer le texte
+                            "marginBottom": "0",  # Pas de marge en bas pour centrer l'élément
+                        },
+                    ),
+                ],
+                style={
+                    "background": "linear-gradient(135deg, #2a6cb2, #1a3d63)",  # Dégradé bleu plus profond et moins clair
+                    "padding": "20px",
+                    "borderRadius": "15px",  # Coins arrondis
+                    "boxShadow": "0 4px 10px rgba(0, 0, 0, 0.1)",  # Ombre légère pour donner de la profondeur
+                    "display": "flex",
+                    "alignItems": "center",
+                    "justifyContent": "center",  # Centrer le contenu horizontalement
+                    "marginBottom": "30px",
+                    "marginLeft": "260px",  # Décalage pour la SideNav
+                    "marginTop": "20px",
+                    "marginRight": "10px",
+                },
             ),
             # Grille 2x2 pour les graphiques
             html.Div(
