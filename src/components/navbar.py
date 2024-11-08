@@ -40,32 +40,32 @@ def create_sidenav():
                         dbc.Nav(
                             [
                                 dbc.NavLink(
-                                    [html.I(className="fas fa-home me-2"), "Home"],  # Icône pour "Home"
+                                    [html.I(className="fas fa-home me-2"), "Accueil"],  # Icône pour "Home"
                                     href="/",
                                     className="nav-link text-white",
                                     active="exact",
                                     #style={"backgroundColor": "transparent", "color": "#ffffff"}
                                 ),
                                 dbc.NavLink(
-                                    [html.I(className="fas fa-table me-2"), "Context"],  # Icône pour "Context"
+                                    [html.I(className="fas fa-table me-2"), "Contexte"],  # Icône pour "Context"
                                     href="/context",
                                     className="nav-link text-white",
                                     active="exact"
                                 ),
                                 dbc.NavLink(
-                                    [html.I(className="fas fa-chart-bar me-2"), "Charts"],  # Icône pour "Charts"
+                                    [html.I(className="fas fa-chart-bar me-2"), "Graphiques"],  # Icône pour "Charts"
                                     href="/charts",
                                     className="nav-link text-white",
                                     active="exact"
                                 ),
                                 dbc.NavLink(
-                                    [html.I(className="fas fa-map-marker-alt me-2"), "Map"],  # Icône pour "Map"
+                                    [html.I(className="fas fa-map-marker-alt me-2"), "Cartes"],  # Icône pour "Map"
                                     href="/map",
                                     className="nav-link text-white",
                                     active="exact"
                                 ),
                                 dbc.NavLink(
-                                    [html.I(className="fas fa-question-circle me-2"), "About"],  # Icône pour "About"
+                                    [html.I(className="fas fa-question-circle me-2"), "A propos"],  # Icône pour "About"
                                     href="/about",
                                     className="nav-link text-white",
                                     active="exact"

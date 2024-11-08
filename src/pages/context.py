@@ -23,70 +23,109 @@ def create_context_page():
 
     # Exemple de KPI pour les cartes
     total_entries = len(data)
+    conso_moyenne = data['cout_total_5_usages'].mean()
     average_dpe = data['etiquette_dpe'].value_counts().idxmax()  # Exemple de calcul
     total_postals = len(data['code_postal_ban'].unique())
     
     return html.Div([
 
+        # Bloc du titre avec fond en dégradé et icône Font Awesome
+        html.Div([
+            html.I(className="fas fa-chart-line",  # Icône Font Awesome
+                   style={
+                       "fontSize": "36px",
+                       "color": "white",
+                       "marginRight": "15px",
+                       "verticalAlign": "middle",
+                   }),
+            html.H1(
+                "Contexte",
+                style={
+                    "color": "white",
+                    "fontSize": "32px",
+                    "fontFamily": "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                    "fontWeight": "bold",
+                    "display": "inline-block",
+                    "lineHeight": "1.2",
+                    "textAlign": "center",
+                    "marginBottom": "0",
+                }
+            )
+        ], style={
+            "background": "linear-gradient(135deg, #2a6cb2, #1a3d63)",  # Dégradé bleu
+            "padding": "20px",
+            "borderRadius": "15px",
+            "boxShadow": "0 4px 10px rgba(0, 0, 0, 0.1)",
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "center",
+            "marginBottom": "20px",
+            "marginLeft": "0",
+            "marginTop": "0",
+            "marginRight": "10px"
+        }),
+
         # Conteneur des cartes KPI
         html.Div([
             # Première carte KPI
             html.Div([
-                html.Div([
-                    html.I(className="fas fa-house-user", style={'fontSize': '40px', 'color': 'white'}),
+                html.Div([  
+                    html.I(className="fas fa-house-user", style={ 'color': 'white'}),
                     html.H5("Total des Entrées", style={'color': 'white', 'marginTop': '10px'}),
-                    html.P(f"{total_entries}", style={'color': 'white', 'fontSize': '24px', 'fontWeight': 'bold'})
+                    html.P(f"{conso_moyenne}", style={'color': 'white', 'fontSize': '24px', 'fontWeight': 'bold'})
                 ], style={
-                    'backgroundColor': '#4CAF50',
                     'borderRadius': '10px',
                     'padding': '20px',
-                    'height': '170px',
-                    'width': '250px',  # Assurez-vous que toutes les cartes ont la même largeur
+                    #'height': '150px',
+                    'width': '250px',
                     'textAlign': 'center',
                     'boxShadow': '0 4px 8px rgba(0,0,0,0.2)',
                     'margin': '10px',
                     'display': 'inline-block',
-                }),
-            ], style={'display': 'inline-block'}),  # Alignement horizontal
+                },
+                className="kpi-card"),
+            ], style={'display': 'inline-block'}),
 
             # Deuxième carte KPI
             html.Div([
                 html.Div([
-                    html.I(className="fas fa-calendar-alt", style={'fontSize': '40px', 'color': 'white'}),
+                    html.I(className="fas fa-calendar-alt", style={ 'color': 'white'}),
                     html.H5("DPE Maximum", style={'color': 'white', 'marginTop': '10px'}),
                     html.P(f"{average_dpe}", style={'color': 'white', 'fontSize': '24px', 'fontWeight': 'bold'})
                 ], style={
-                    'backgroundColor': '#FF9800',
+                    'backgroundColor': 'linear-gradient(to top left, #33cc33 0%, #0066ff 100%)',
                     'borderRadius': '10px',
                     'padding': '20px',
-                    'height': '170px',
-                    'width': '250px',  # Assurez-vous que toutes les cartes ont la même largeur
+                    #'height': '170px',
+                    'width': '250px',
                     'textAlign': 'center',
                     'boxShadow': '0 4px 8px rgba(0,0,0,0.2)',
                     'margin': '10px',
                     'display': 'inline-block',
-                }),
-            ], style={'display': 'inline-block'}),  # Alignement horizontal
+                },
+                className="kpi-card"),
+            ], style={'display': 'inline-block'}),
 
             # Troisième carte KPI
             html.Div([
                 html.Div([
-                    html.I(className="fas fa-map-marker-alt", style={'fontSize': '40px', 'color': 'white'}),
+                    html.I(className="fas fa-map-marker-alt", style={'color': 'white'}),
                     html.H5("Total des Codes Postaux", style={'color': 'white', 'marginTop': '10px'}),
                     html.P(f"{total_postals}", style={'color': 'white', 'fontSize': '24px', 'fontWeight': 'bold'})
                 ], style={
-                    'backgroundColor': '#2196F3',
                     'borderRadius': '10px',
                     'padding': '20px',
-                    'height': '170px',
-                    'width': '250px',  # Assurez-vous que toutes les cartes ont la même largeur
+                    #'height': '170px',
+                    'width': '250px',
                     'textAlign': 'center',
                     'boxShadow': '0 4px 8px rgba(0,0,0,0.2)',
                     'margin': '10px',
                     'display': 'inline-block',
-                }),
-            ], style={'display': 'inline-block'}),  # Alignement horizontal
-        ], style={'textAlign': 'center', 'marginBottom': '30px', 'display': 'flex', 'justifyContent': 'center'}),  # Centrer les cartes et espace en bas
+                },
+                className="kpi-card"),
+            ], style={'display': 'inline-block'}),
+
+        ], style={'textAlign': 'center', 'marginBottom': '30px', 'display': 'flex', 'justifyContent': 'center'}),
 
         # Conteneur des filtres avec alignement horizontal de deux colonnes
         html.Div([
@@ -139,7 +178,7 @@ def create_context_page():
                     ),
                 ])
             ], style={'width': '48%'}),  # Deuxième colonne avec largeur de 48%
-        ], style={'display': 'flex', 'justifyContent': 'space-between'}),  # Aligner les deux colonnes horizontalement
+        ], style={'display': 'flex', 'justifyContent': 'space-between'}),
 
         # Ajouter un espace entre les filtres et le tableau
         html.Div(style={'height': '20px'}),  # Espace de 20px
