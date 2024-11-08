@@ -13,8 +13,79 @@
 
 /* Style pour les liens lorsque l'utilisateur passe la souris */
 .nav-link:hover {
-    background-color: lightgrey !important; /* Couleur de fond au survol */
+    background-color: rgb(255, 255, 255) !important; /* Couleur de fond au survol */
     color: #050505 !important; /* Couleur de texte au survol */
-    opacity: 0.6;
+
     border-bottom: 2px solid #050505; /* Bordure visible au survol */
+}
+
+/*
+.kpi-card {
+    background-color: #050505;
+    border-radius: 10px;
+    padding: 20px;
+    height: 170px;
+    width: 250px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    margin: 10px;
+    display: inline-block;
+}
+    */
+
+.kpi-card {
+    background: linear-gradient(to top right, #00bcd4, #0097a7); /* Gradient pour un look moderne */
+    border-radius: 15px; /* Coins arrondis pour un design plus doux */
+    padding: 25px; /* Augmente l'espace intérieur */
+    height: 150px; /* Ajuste la hauteur de la carte */
+    width: 280px; /* Augmente légèrement la largeur de la carte */
+    text-align: center; /* Centrage du contenu */
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2); /* Ombre plus douce et large pour un effet plus élégant */
+    margin: 15px; /* Espacement plus grand entre les cartes */
+    display: inline-block; /* Maintien l'alignement horizontal */
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Animation de transformation pour l'interactivité */
+}
+
+.kpi-card:hover {
+    transform: scale(1.05); /* Agrandit légèrement la carte au survol */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3); /* Ombre plus marquée au survol */
+}
+
+.kpi-card i {
+    font-size: 30px; /* Taille d'icône plus grande pour une meilleure visibilité */
+    color: white; /* Icônes en blanc pour un bon contraste */
+    margin-bottom: 15px; /* Espacement entre l'icône et le titre */
+    transition: transform 0.3s ease; /* Animation d'icône */
+}
+
+.kpi-card i:hover {
+    transform: rotate(15deg); /* Effet de rotation au survol de l'icône */
+}
+
+.kpi-card h5 {
+    font-size: 18px; /* Réduit la taille du titre */
+    color: white; /* Couleur du texte en blanc pour contraste */
+    font-weight: 600; /* Légèrement plus gras pour améliorer la lisibilité */
+    margin-top: 0; /* Supprime l'espace au-dessus du titre */
+    margin-bottom: 8px; /* Espacement entre le titre et la valeur */
+}
+
+.kpi-card p {
+    font-size: 30px; /* Réduit la taille de la valeur */
+    color: white; /* Couleur du texte en blanc */
+    font-weight: 700; /* Textes en gras pour mettre en valeur la donnée */
+    margin-top: 0; /* Supprime l'espace au-dessus de la valeur */
+}
+
+.kpi-card h5, .kpi-card p {
+    transition: all 0.3s ease; /* Animation de transition pour le texte */
+}
+
+.kpi-card:hover h5, .kpi-card:hover p {
+    color: #fff; /* Maintient le texte en blanc au survol */
+    transform: translateY(-5px); /* Légère translation du texte au survol */
+}
+
+button:hover {
+    background-color: #0097a7;
 }
