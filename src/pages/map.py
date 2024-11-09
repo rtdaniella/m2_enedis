@@ -29,7 +29,7 @@ def create_map_page():
                         },
                     ),
                     html.H1(
-                        "Carte Interactives",
+                        "Carte Interactive",
                         style={
                             "color": "#ffffff",  # Couleur du texte en blanc
                             "fontSize": "32px",  # Taille de police plus grande
