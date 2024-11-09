@@ -1,15 +1,14 @@
 from dash import Dash, html, dcc, Input, Output
 import dash_bootstrap_components as dbc
-
+import pandas as pd
 from components.navbar import create_sidenav
 from components.footer import create_footer
 from pages.home import create_home_page
 from pages.about import create_about_page
-from pages.context import create_context_page
-from pages.charts import create_charts_page
-from pages.map import create_map_page
+from pages.context import create_context_page 
+from pages.charts import create_charts_page  
+from pages.map import create_map_page  
 from pages.not_found_404 import create_not_found_page
-
 # Importer les pages de prédiction
 from pages.prediction_dpe import create_pred_dpe_page
 from pages.prediction_conso import create_pred_conso_page
@@ -22,7 +21,6 @@ app = Dash(
     ],
     suppress_callback_exceptions=True,
 )
-
 
 navbar = create_sidenav()
 footer = create_footer()
@@ -48,9 +46,9 @@ def display_page(pathname):
     elif pathname == "/context":
         return create_context_page()  # Appelle la page Context
     elif pathname == "/charts":
-        return create_charts_page()  # Appelle la page Charts
+         return create_charts_page()  # Appelle la page Charts
     elif pathname == "/map":
-        return create_map_page()  # Appelle la page Map
+         return create_map_page()  # Appelle la page Map 
     elif pathname == "/pred_dpe":
         return create_pred_dpe_page()  # Appelle la page prédiction étiquette DPE
     elif pathname == "/pred_conso":
@@ -60,6 +58,8 @@ def display_page(pathname):
     else:
         return create_not_found_page()  # Appelle la page 404
 
+# Enregistrer les callbacks pour la page de prédiction
+# register_prediction_callbacks(app)  # Fonction spécifique pour enregistrer les callbacks de prédiction
 
 # Callback pour rediriger les boutons vers les pages de prédiction
 @app.callback(
@@ -80,4 +80,4 @@ def update_url(button1_clicks, button2_clicks):
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=False)
