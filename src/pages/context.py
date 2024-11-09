@@ -151,7 +151,7 @@ def create_context_page():
             html.Div(
                 [
                     html.Button(
-                        "Exporter la sélection filtrée (CSV)",
+                        "Exporter la sélection (CSV)",
                         id="btn-export",
                         n_clicks=0,
                         style={
