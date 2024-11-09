@@ -7,7 +7,7 @@ from pages.home import create_home_page
 from pages.about import create_about_page
 from pages.context import create_context_page 
 from pages.charts import create_charts_page  
-from pages.map import create_map_page, register_callbacks  
+from pages.map import create_map_page  
 from pages.not_found_404 import create_not_found_page
 # Importer les pages de prédiction
 from pages.prediction_dpe import create_pred_dpe_page
@@ -59,7 +59,7 @@ def display_page(pathname):
         return create_not_found_page()  # Appelle la page 404
 
 # Enregistrer les callbacks pour la page de prédiction
-register_prediction_callbacks(app)  # Fonction spécifique pour enregistrer les callbacks de prédiction
+# register_prediction_callbacks(app)  # Fonction spécifique pour enregistrer les callbacks de prédiction
 
 # Callback pour rediriger les boutons vers les pages de prédiction
 @app.callback(

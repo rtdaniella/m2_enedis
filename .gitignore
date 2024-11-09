@@ -35,7 +35,7 @@ env/
 # files/
 # *.h5
 # *.pkl
-# *.joblib
+*.joblib
 # *.ckpt
 
 # Logs and caches
@@ -45,3 +45,4 @@ env/
 # Dash-related assets and cached data
 assets/__pycache__/
 .cache/
+
