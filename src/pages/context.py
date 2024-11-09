@@ -1,404 +1,369 @@
+from functools import lru_cache
 import pandas as pd
-from dash import html, dash_table, dcc, Input, Output
+from dash import html, dash_table, dcc, Input, Output, callback, State
 import dash
-import dash_daq as daq
+from datetime import datetime
+import numpy as np
+
+# Constantes pour la pagination
+PAGE_SIZE = 15
+INITIAL_PAGE = 0
 
 
-# Charger les données CSV
-def load_data(file_path):
-    return pd.read_csv(file_path)
+@lru_cache(maxsize=1)
+def load_data():
+    # Optimisation du chargement initial en utilisant des types de données optimisés
+    dtype_dict = {
+        "code_postal_ban": "category",
+        "etiquette_dpe": "category",
+        "logement": "category",
+        "passoire_energetique": "category",
+        "type_batiment": "category",
+        "type_energie_n_1": "category",
+        "type_installation_chauffage": "category",
+        "periode_construction": "category",
+        "yearmonth": "category",
+        "surface_habitable_logement": "float32",
+        "cout_total_5_usages": "float32",
+        "conso_5_usages_e_finale": "float32",
+    }
+
+    return pd.read_csv(
+        "src/files/dpe-nettoye.csv",
+        usecols=[
+            "code_postal_ban",
+            "etiquette_dpe",
+            "cout_total_5_usages",
+            "conso_5_usages_e_finale",
+            "logement",
+            "passoire_energetique",
+            "type_batiment",
+            "type_energie_n_1",
+            "type_installation_chauffage",
+            "periode_construction",
+            "yearmonth",
+            "surface_habitable_logement",
+        ],
+        dtype=dtype_dict,
+    )
 
 
-# Créer la page de contexte avec tableau et filtres
+@lru_cache(maxsize=1)
+def get_unique_values():
+    data = load_data()
+    # Optimisation de la récupération des valeurs uniques
+    return {
+        "dpe": data["etiquette_dpe"].cat.categories.tolist(),
+        "construction": data["periode_construction"].cat.categories.tolist(),
+        "energie": data["type_energie_n_1"].cat.categories.tolist(),
+        "postal": data["code_postal_ban"].cat.categories.tolist(),
+    }
+
+
+def calculate_kpis(data):
+    return {
+        "total_entries": len(data),
+        "average_dpe": data["etiquette_dpe"].mode().iloc[0],
+        "total_postals": data["code_postal_ban"].nunique(),
+    }
+
+
 def create_context_page():
-    # Charger les données depuis un fichier CSV
-    data = load_data("src/files/dpe-nettoye.csv")
+    data = load_data()
+    unique_values = get_unique_values()
+    kpi = calculate_kpis(data)
 
-    # Récupérer les colonnes du CSV pour le tableau
-    columns = [{"name": col, "id": col} for col in data.columns]
-
-    # Récupérer les valeurs uniques de chaque colonne pour les filtres
-    dpe_values = data["etiquette_dpe"].unique()
-    periode_construction_values = data["periode_construction"].unique()
-    type_energie_values = data["type_energie_n_1"].unique()
-    code_postal_values = data["code_postal_ban"].unique()
-
-    # Exemple de KPI pour les cartes
-    total_entries = len(data)
-    conso_moyenne = data["cout_total_5_usages"].mean()
-    average_dpe = data["etiquette_dpe"].value_counts().idxmax()  # Exemple de calcul
-    total_postals = len(data["code_postal_ban"].unique())
-
-    return html.Div(
+    layout = html.Div(
         [
-            # Bloc du titre avec fond en dégradé et icône Font Awesome
-            html.Div(
-                [
-                    html.I(
-                        className="fas fa-chart-line",  # Icône Font Awesome
+            # En-tête avec lazy loading
+            dcc.Loading(
+                id="loading-header",
+                children=[
+                    html.Div(
+                        [
+                            html.I(
+                                className="fas fa-chart-line",
+                                style={
+                                    "fontSize": "36px",
+                                    "color": "white",
+                                    "marginRight": "15px",
+                                    "verticalAlign": "middle",
+                                },
+                            ),
+                            html.H1(
+                                "Contexte",
+                                style={
+                                    "color": "white",
+                                    "fontSize": "32px",
+                                    "fontWeight": "bold",
+                                    "display": "inline-block",
+                                    "marginBottom": "0",
+                                },
+                            ),
+                        ],
                         style={
-                            "fontSize": "36px",
-                            "color": "white",
-                            "marginRight": "15px",
-                            "verticalAlign": "middle",
+                            "background": "linear-gradient(135deg, #2a6cb2, #1a3d63)",
+                            "padding": "20px",
+                            "borderRadius": "15px",
+                            "boxShadow": "0 4px 10px rgba(0, 0, 0, 0.1)",
+                            "display": "flex",
+                            "alignItems": "center",
+                            "justifyContent": "center",
+                            "marginBottom": "20px",
                         },
                     ),
-                    html.H1(
-                        "Contexte",
+                ],
+                type="default",
+            ),
+            # KPI Cards avec Lazy Loading
+            dcc.Loading(
+                id="loading-kpis",
+                children=[
+                    html.Div(
+                        [
+                            create_kpi_card(
+                                "fas fa-house-user",
+                                "Total des Entrées",
+                                kpi["total_entries"],
+                            ),
+                            create_kpi_card(
+                                "fas fa-calendar-alt",
+                                "DPE le plus courant",
+                                kpi["average_dpe"],
+                            ),
+                            create_kpi_card(
+                                "fas fa-map-marker-alt",
+                                "Total des Codes Postaux",
+                                kpi["total_postals"],
+                            ),
+                        ],
                         style={
+                            "display": "flex",
+                            "justifyContent": "center",
+                            "gap": "20px",
+                            "marginBottom": "30px",
+                        },
+                    )
+                ],
+                type="default",
+            ),
+            # Bouton d'exportation
+            html.Div(
+                [
+                    html.Button(
+                        "Exporter la sélection filtrée (CSV)",
+                        id="btn-export",
+                        n_clicks=0,
+                        style={
+                            "backgroundColor": "#2a6cb2",
                             "color": "white",
-                            "fontSize": "32px",
-                            "fontFamily": "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-                            "fontWeight": "bold",
-                            "display": "inline-block",
-                            "lineHeight": "1.2",
+                            "border": "none",
+                            "padding": "10px 20px",
                             "textAlign": "center",
-                            "marginBottom": "0",
+                            "textDecoration": "none",
+                            "display": "inline-block",
+                            "fontSize": "16px",
+                            "margin": "4px 2px",
+                            "cursor": "pointer",
+                            "borderRadius": "10px",
                         },
                     ),
+                    dcc.Download(id="download-dataframe-csv"),
                 ],
-                style={
-                    "background": "linear-gradient(135deg, #2a6cb2, #1a3d63)",  # Dégradé bleu
-                    "padding": "20px",
-                    "borderRadius": "15px",
-                    "boxShadow": "0 4px 10px rgba(0, 0, 0, 0.1)",
-                    "display": "flex",
-                    "alignItems": "center",
-                    "justifyContent": "center",
-                    "marginBottom": "20px",
-                    "marginLeft": "0",
-                    "marginTop": "0",
-                    "marginRight": "10px",
-                },
+                style={"textAlign": "center", "marginTop": "20px"},
             ),
-            # Conteneur des cartes KPI
-            html.Div(
-                [
-                    # Première carte KPI
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.I(
-                                        className="fas fa-house-user",
-                                        style={"color": "white"},
-                                    ),
-                                    html.H5(
-                                        "Total des Entrées",
-                                        style={"color": "white", "marginTop": "10px"},
-                                    ),
-                                    html.P(
-                                        f"{conso_moyenne}",
-                                        style={
-                                            "color": "white",
-                                            "fontSize": "24px",
-                                            "fontWeight": "bold",
-                                        },
-                                    ),
-                                ],
-                                style={
-                                    "borderRadius": "10px",
-                                    "padding": "20px",
-                                    #'height': '150px',
-                                    "width": "250px",
-                                    "textAlign": "center",
-                                    "boxShadow": "0 4px 8px rgba(0,0,0,0.2)",
-                                    "margin": "10px",
-                                    "display": "inline-block",
-                                },
-                                className="kpi-card",
-                            ),
-                        ],
-                        style={"display": "inline-block"},
-                    ),
-                    # Deuxième carte KPI
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.I(
-                                        className="fas fa-calendar-alt",
-                                        style={"color": "white"},
-                                    ),
-                                    html.H5(
-                                        "DPE Maximum",
-                                        style={"color": "white", "marginTop": "10px"},
-                                    ),
-                                    html.P(
-                                        f"{average_dpe}",
-                                        style={
-                                            "color": "white",
-                                            "fontSize": "24px",
-                                            "fontWeight": "bold",
-                                        },
-                                    ),
-                                ],
-                                style={
-                                    "backgroundColor": "linear-gradient(to top left, #33cc33 0%, #0066ff 100%)",
-                                    "borderRadius": "10px",
-                                    "padding": "20px",
-                                    #'height': '170px',
-                                    "width": "250px",
-                                    "textAlign": "center",
-                                    "boxShadow": "0 4px 8px rgba(0,0,0,0.2)",
-                                    "margin": "10px",
-                                    "display": "inline-block",
-                                },
-                                className="kpi-card",
-                            ),
-                        ],
-                        style={"display": "inline-block"},
-                    ),
-                    # Troisième carte KPI
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.I(
-                                        className="fas fa-map-marker-alt",
-                                        style={"color": "white"},
-                                    ),
-                                    html.H5(
-                                        "Total des Codes Postaux",
-                                        style={"color": "white", "marginTop": "10px"},
-                                    ),
-                                    html.P(
-                                        f"{total_postals}",
-                                        style={
-                                            "color": "white",
-                                            "fontSize": "24px",
-                                            "fontWeight": "bold",
-                                        },
-                                    ),
-                                ],
-                                style={
-                                    "borderRadius": "10px",
-                                    "padding": "20px",
-                                    #'height': '170px',
-                                    "width": "250px",
-                                    "textAlign": "center",
-                                    "boxShadow": "0 4px 8px rgba(0,0,0,0.2)",
-                                    "margin": "10px",
-                                    "display": "inline-block",
-                                },
-                                className="kpi-card",
-                            ),
-                        ],
-                        style={"display": "inline-block"},
-                    ),
+            # Filtres optimisés
+            html.Div([create_filter_section(unique_values)]),
+            # DataTable avec pagination côté serveur
+            dcc.Loading(
+                id="loading-table",
+                children=[
+                    dash_table.DataTable(
+                        id="data-table",
+                        columns=[{"name": col, "id": col} for col in data.columns],
+                        page_size=PAGE_SIZE,
+                        page_current=INITIAL_PAGE,
+                        page_action="custom",
+                        sort_action="custom",
+                        sort_mode="single",
+                        filter_action="none",
+                        style_table={"overflowX": "auto"},
+                        style_cell={"textAlign": "left", "padding": "5px"},
+                        style_header={
+                            "backgroundColor": "grey",
+                            "fontWeight": "bold",
+                            "color": "white",
+                        },
+                    )
                 ],
-                style={
-                    "textAlign": "center",
-                    "marginBottom": "30px",
-                    "display": "flex",
-                    "justifyContent": "center",
-                },
-            ),
-            # Conteneur des filtres avec alignement horizontal de deux colonnes
-            html.Div(
-                [
-                    # Première colonne (deux filtres verticaux)
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.Label(
-                                        "Filtrer par étiquette DPE",
-                                        style={
-                                            "fontWeight": "bold",
-                                            "marginBottom": "10px",
-                                        },
-                                    ),
-                                    dcc.Dropdown(
-                                        id="dpe-filter",
-                                        options=[
-                                            {"label": val, "value": val}
-                                            for val in dpe_values
-                                        ],
-                                        multi=True,  # Permet de sélectionner plusieurs valeurs
-                                        placeholder="Sélectionner une étiquette DPE",
-                                        style={
-                                            "width": "100%",
-                                            "padding": "5px",
-                                            "height": "30px",
-                                        },  # Réduction de la hauteur
-                                    ),
-                                ],
-                                style={"marginBottom": "20px"},
-                            ),
-                            html.Div(
-                                [
-                                    html.Label(
-                                        "Filtrer par période de construction",
-                                        style={
-                                            "fontWeight": "bold",
-                                            "marginBottom": "10px",
-                                        },
-                                    ),
-                                    dcc.Dropdown(
-                                        id="periode-construction-filter",
-                                        options=[
-                                            {"label": val, "value": val}
-                                            for val in periode_construction_values
-                                        ],
-                                        multi=True,
-                                        placeholder="Sélectionner une période de construction",
-                                        style={
-                                            "width": "100%",
-                                            "padding": "5px",
-                                            "height": "30px",
-                                        },
-                                    ),
-                                ],
-                                style={"marginBottom": "20px"},
-                            ),
-                        ],
-                        style={"width": "48%", "marginRight": "4%"},
-                    ),  # Première colonne avec largeur de 48%
-                    # Deuxième colonne (deux filtres verticaux)
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.Label(
-                                        "Filtrer par type d'énergie",
-                                        style={
-                                            "fontWeight": "bold",
-                                            "marginBottom": "10px",
-                                        },
-                                    ),
-                                    dcc.Dropdown(
-                                        id="type-energie-filter",
-                                        options=[
-                                            {"label": val, "value": val}
-                                            for val in type_energie_values
-                                        ],
-                                        multi=True,
-                                        placeholder="Sélectionner un type d'énergie",
-                                        style={
-                                            "width": "100%",
-                                            "padding": "5px",
-                                            "height": "30px",
-                                        },
-                                    ),
-                                ],
-                                style={"marginBottom": "20px"},
-                            ),
-                            html.Div(
-                                [
-                                    html.Label(
-                                        "Filtrer par code postal",
-                                        style={
-                                            "fontWeight": "bold",
-                                            "marginBottom": "10px",
-                                        },
-                                    ),
-                                    dcc.Dropdown(
-                                        id="code-postal-filter",
-                                        options=[
-                                            {"label": val, "value": val}
-                                            for val in code_postal_values
-                                        ],
-                                        multi=True,
-                                        placeholder="Sélectionner un code postal",
-                                        style={
-                                            "width": "100%",
-                                            "padding": "5px",
-                                            "height": "30px",
-                                        },
-                                    ),
-                                ]
-                            ),
-                        ],
-                        style={"width": "48%"},
-                    ),  # Deuxième colonne avec largeur de 48%
-                ],
-                style={"display": "flex", "justifyContent": "space-between"},
-            ),
-            # Ajouter un espace entre les filtres et le tableau
-            html.Div(style={"height": "20px"}),  # Espace de 20px
-            # Tableau de données
-            dash_table.DataTable(
-                id="data-table",
-                columns=columns,
-                data=data.to_dict("records"),
-                style_as_list_view=True,
-                style_table={
-                    "overflowX": "auto",
-                    "maxWidth": "100%",
-                    "maxHeight": "570px",  # Limite la hauteur et active le défilement vertical
-                    "border": "1px solid black",  # Bordure du tableau
-                },
-                style_cell={
-                    "backgroundColor": "lightgrey",  # Couleur de fond des cellules
-                    "color": "black",  # Couleur du texte
-                    "textAlign": "left",
-                    "padding": "10px",
-                    "minWidth": "120px",
-                    "width": "150px",
-                    "maxWidth": "200px",  # Ajuste la largeur des colonnes
-                    "whiteSpace": "normal",  # Permet le retour à la ligne si le texte est trop long
-                    "border": "1px solid black",  # Bordure des cellules
-                },
-                style_header={
-                    "backgroundColor": "grey",  # Fond de l'en-tête
-                    "fontWeight": "bold",
-                    "color": "white",
-                    "border": "1px solid black",  # Bordure de l'en-tête
-                },
-                style_data_conditional=[
-                    {
-                        "if": {"row_index": "odd"},
-                        "backgroundColor": "lightgrey",
-                    },  # Couleur de fond pour les lignes impaires
-                ],
-                style_cell_conditional=[
-                    {"if": {"column_id": col}, "width": "200px"} for col in data.columns
-                ],
+                type="default",
             ),
         ],
         style={
             "padding": "20px",
-            "marginLeft": "260px",  # Décalage pour laisser de l'espace à la SideNav
+            "marginLeft": "260px",
+            "marginBottom": "75px",
+        },
+    )
+
+    return layout
+
+
+def create_kpi_card(icon_class, title, value):
+    return html.Div(
+        [
+            html.I(className=icon_class, style={"color": "white"}),
+            html.H5(title, style={"color": "white", "marginTop": "10px"}),
+            html.P(
+                str(value),
+                style={"color": "white", "fontSize": "24px", "fontWeight": "bold"},
+            ),
+        ],
+        style={
+            "borderRadius": "10px",
+            "padding": "20px",
+            "width": "250px",
+            "textAlign": "center",
+            "boxShadow": "0 4px 8px rgba(0,0,0,0.2)",
+            "backgroundColor": "#2a6cb2",
         },
     )
 
 
-# Configuration de l'application Dash
-app = dash.Dash(__name__)
+def create_filter_section(unique_values):
+    return html.Div(
+        [
+            html.Div(
+                [
+                    create_filter(
+                        "dpe-filter", "Filtrer par étiquette DPE", unique_values["dpe"]
+                    ),
+                    create_filter(
+                        "periode-construction-filter",
+                        "Période de construction",
+                        unique_values["construction"],
+                    ),
+                ],
+                style={"width": "48%", "marginRight": "4%"},
+            ),
+            html.Div(
+                [
+                    create_filter(
+                        "type-energie-filter",
+                        "Type d'énergie",
+                        unique_values["energie"],
+                    ),
+                    create_filter(
+                        "code-postal-filter", "Code postal", unique_values["postal"]
+                    ),
+                ],
+                style={"width": "48%"},
+            ),
+        ],
+        style={
+            "display": "flex",
+            "justifyContent": "space-between",
+            "marginBottom": "20px",
+        },
+    )
 
 
-# Mettre à jour le tableau en fonction des filtres
-@app.callback(
+def create_filter(id, label, options):
+    return html.Div(
+        [
+            html.Label(label, style={"fontWeight": "bold", "marginBottom": "10px"}),
+            dcc.Dropdown(
+                id=id,
+                options=[{"label": str(val), "value": val} for val in options],
+                multi=True,
+                placeholder=f"Sélectionner {label}",
+                style={"width": "100%"},
+                clearable=True,
+            ),
+        ],
+        style={"marginBottom": "20px"},
+    )
+
+
+@callback(
     Output("data-table", "data"),
     [
+        Input("data-table", "page_current"),
+        Input("data-table", "page_size"),
+        Input("data-table", "sort_by"),
         Input("dpe-filter", "value"),
         Input("periode-construction-filter", "value"),
         Input("type-energie-filter", "value"),
         Input("code-postal-filter", "value"),
     ],
+    prevent_initial_call=True,
 )
-def update_table(dpe_filter, periode_filter, energie_filter, postal_filter):
-    # Charger les données depuis un fichier CSV
-    data = load_data(
-        "C:/Users/danie/OneDrive/Documents/GitHub/m2_enedis/src/files/dpe-nettoye.csv"
-    )
+def update_table(
+    page_current,
+    page_size,
+    sort_by,
+    dpe_filter,
+    periode_filter,
+    energie_filter,
+    postal_filter,
+):
+    # Chargement des données avec cache
+    df = load_data()
 
-    # Appliquer les filtres si sélectionnés
+    # Application des filtres
     if dpe_filter:
-        data = data[data["etiquette_dpe"].isin(dpe_filter)]
+        df = df[df["etiquette_dpe"].isin(dpe_filter)]
     if periode_filter:
-        data = data[data["periode_construction"].isin(periode_filter)]
+        df = df[df["periode_construction"].isin(periode_filter)]
     if energie_filter:
-        data = data[data["type_energie_n_1"].isin(energie_filter)]
+        df = df[df["type_energie_n_1"].isin(energie_filter)]
     if postal_filter:
-        data = data[data["code_postal_ban"].isin(postal_filter)]
+        df = df[df["code_postal_ban"].isin(postal_filter)]
 
-    return data.to_dict("records")
+    # Tri
+    if sort_by:
+        df = df.sort_values(
+            sort_by[0]["column_id"],
+            ascending=sort_by[0]["direction"] == "asc",
+            na_position="last",
+        )
+
+    # Pagination
+    start = page_current * page_size
+    end = start + page_size
+
+    return df.iloc[start:end].to_dict("records")
 
 
-# Définir la mise en page de l'application
-app.layout = create_context_page()
+@callback(
+    Output("download-dataframe-csv", "data"),
+    Input("btn-export", "n_clicks"),
+    [
+        State("dpe-filter", "value"),
+        State("periode-construction-filter", "value"),
+        State("type-energie-filter", "value"),
+        State("code-postal-filter", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def export_data(n_clicks, dpe_filter, periode_filter, energie_filter, postal_filter):
+    if not n_clicks:
+        return None
 
-if __name__ == "__main__":
-    app.run_server(debug=True)
+    df = load_data()
+
+    # Application des filtres
+    if dpe_filter:
+        df = df[df["etiquette_dpe"].isin(dpe_filter)]
+    if periode_filter:
+        df = df[df["periode_construction"].isin(periode_filter)]
+    if energie_filter:
+        df = df[df["type_energie_n_1"].isin(energie_filter)]
+    if postal_filter:
+        df = df[df["code_postal_ban"].isin(postal_filter)]
+
+    return dcc.send_data_frame(
+        df.to_csv,
+        f"export_donnees_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        index=False,
+    )
