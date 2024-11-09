@@ -1,107 +1,123 @@
-import os
-import sys
-from dash import html, dcc, Input, Output
+from functools import lru_cache
+from dash import html
 import pandas as pd
-import folium
-from folium.plugins import MarkerCluster
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+from dash import Input, Output, callback, dcc, html
+import plotly.graph_objects as go
 
-from src.utils.models.preprocess import preprocess_all_data
 
-# Fonction pour générer la carte
-def generate_map(df_filtered):
-    # Créer la carte initiale centrée sur la moyenne des coordonnées des logements filtrés
-    if not df_filtered.empty:
-        map_center = [df_filtered['latitude'].mean(), df_filtered['longitude'].mean()]
-    else:
-        map_center = [df_filtered['latitude'].mean(), df_filtered['longitude'].mean()]
+@lru_cache(maxsize=1)
+def load_data():
+    return pd.read_csv("src/files/dpe-nettoye.csv")
 
-    # Initialiser la carte Folium
-    m = folium.Map(location=map_center, zoom_start=12)
 
-    # Créer un cluster pour les marqueurs
-    marker_cluster = MarkerCluster().add_to(m)
+def create_map_page():
 
-    # Ajouter les marqueurs pour les points filtrés (en limitant si nécessaire)
-    for _, row in df_filtered.iterrows():
-        folium.Marker(
-            location=[row['latitude'], row['longitude']],
-            popup=f"{row['type_batiment']} - {row['logement']}"
-        ).add_to(marker_cluster)
+    df = load_data()
 
-    # Convertir la carte Folium en HTML pour l'afficher dans Dash
-    return m._repr_html_()
-
-def create_map_page(dfa, dfn):
-    # Charger les données d'entrée
-    df, df_all = preprocess_all_data(dfa, dfn)
-
-    # Filtrer les données une seule fois
-    df = df.set_index('n_dpe')
-    df_all = df_all.set_index('n_dpe')
-    df_intersection = df.loc[df.index.intersection(df_all.index)]
-
-    # Sélectionner les colonnes nécessaires
-    df_intersection = df_intersection[['code_postal_ban', 'type_batiment', 'logement']]
-    df_intersection['geopoint'] = df_all.loc[df_intersection.index, 'geopoint']
-
-    # Séparer les colonnes nécessaires pour la carte
-    df_intersection[['latitude', 'longitude']] = df_intersection['geopoint'].str.split(',', expand=True)
-    df_intersection['latitude'] = df_intersection['latitude'].astype(float)
-    df_intersection['longitude'] = df_intersection['longitude'].astype(float)
-
-    # Créer une liste des codes postaux uniques pour le filtre
-    unique_codes_postaux = df_intersection['code_postal_ban'].unique()
-    code_postal_options = [{'label': str(code), 'value': str(code)} for code in unique_codes_postaux]
-
-    default_code_postal = "69310" if "69310" in unique_codes_postaux else unique_codes_postaux[0]
-
-    df_filtered = df_intersection[df_intersection['code_postal_ban'] == default_code_postal]
-
-    # Créer la carte
-    map_html = generate_map(df_filtered)
-
-    return html.Div([
-        html.H1("Carte des Logements DPE"),
-        html.P("Sélectionnez un code postal pour filtrer les logements."),
-        
-        # Menu déroulant pour sélectionner un code postal
-        dcc.Dropdown(
-            id='postal-code-dropdown',
-            options=code_postal_options,
-            value=default_code_postal,  
-            multi=False,  
-            style={'width': '50%'}
-        ),
-        
-        # Conteneur pour afficher la carte filtrée
-        html.Div(id='map-container', children=[html.Iframe(srcDoc=map_html, width="100%", height="500px")])
-    ])
-
-# Callback pour mettre à jour la carte en fonction du code postal sélectionné
-def register_callbacks(app, dfa, dfn):
-    @app.callback(
-        Output('map-container', 'children'),
-        Input('postal-code-dropdown', 'value')
+    layout = html.Div(
+        [
+            # Bloc du titre avec fond en dégradé bleu vif à bleu foncé
+            html.Div(
+                [
+                    html.I(
+                        className="fas fa-globe-americas",  # Icône Font Awesome
+                        style={
+                            "fontSize": "36px",
+                            "color": "#ffffff",  # Icône blanche
+                            "marginRight": "15px",
+                            "verticalAlign": "middle",
+                        },
+                    ),
+                    html.H1(
+                        "Carte Interactive",
+                        style={
+                            "color": "#ffffff",  # Couleur du texte en blanc
+                            "fontSize": "32px",  # Taille de police plus grande
+                            "fontFamily": "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",  # Typographie moderne
+                            "fontWeight": "bold",
+                            "display": "inline-block",  # Affichage en bloc pour centrer le texte
+                            "lineHeight": "1.2",  # Un peu plus d'espace entre les lignes
+                            "textAlign": "center",  # Centrer le texte
+                            "marginBottom": "0",  # Pas de marge en bas pour centrer l'élément
+                        },
+                    ),
+                ],
+                style={
+                    "background": "linear-gradient(135deg, #2a6cb2, #1a3d63)",  # Dégradé bleu plus profond et moins clair
+                    "padding": "20px",
+                    "borderRadius": "15px",  # Coins arrondis
+                    "boxShadow": "0 4px 10px rgba(0, 0, 0, 0.1)",  # Ombre légère pour donner de la profondeur
+                    "display": "flex",
+                    "alignItems": "center",
+                    "justifyContent": "center",  # Centrer le contenu horizontalement
+                    "marginBottom": "30px",
+                    "marginLeft": "260px",  # Décalage pour la SideNav
+                    "marginTop": "20px",
+                    "marginRight": "10px",
+                },
+            ),
+            dcc.RadioItems(
+                id="dpe-filter",
+                options=[
+                    {"label": etiq, "value": etiq}
+                    for etiq in sorted(df["etiquette_dpe"].unique())
+                ],
+                value="A",
+                labelStyle={"display": "inline-block", "margin-right": "10px"},
+            ),
+            html.Div(id="map-container"),
+        ],
+        style={
+            "padding": "20px",
+            "marginLeft": "260px",  # Décalage pour laisser de l'espace à la SideNav
+        },
     )
-    def update_map(selected_code_postal):
-        # Charger et filtrer les données
-        df, df_all = preprocess_all_data(dfa, dfn)
-        df = df.set_index('n_dpe')
-        df_all = df_all.set_index('n_dpe')
-        df_intersection = df.loc[df.index.intersection(df_all.index)]
-        df_intersection = df_intersection[['code_postal_ban', 'type_batiment', 'logement']]
-        df_intersection['geopoint'] = df_all.loc[df_intersection.index, 'geopoint']
-        
-        # Séparer les géopoints
-        df_intersection[['latitude', 'longitude']] = df_intersection['geopoint'].str.split(',', expand=True)
-        df_intersection['latitude'] = df_intersection['latitude'].astype(float)
-        df_intersection['longitude'] = df_intersection['longitude'].astype(float)
+    return layout
 
-        # Filtrer par code postal
-        filtered_df = df_intersection[df_intersection['code_postal_ban'] == selected_code_postal]
 
-        # Générer la carte
-        map_html = generate_map(filtered_df)
+@callback(Output("map-container", "children"), [Input("dpe-filter", "value")])
+def update_map(selected_dpe):
+    df = load_data()
+    filtered_df = df[df["etiquette_dpe"] == selected_dpe]
+    color_map_dpe = {
+        "A": "#008f35",
+        "B": "#57aa28",
+        "C": "#c8d200",
+        "D": "#fcea26",
+        "E": "#f8bb00",
+        "F": "#ea690b",
+        "G": "#e30c1c",
+    }
 
-        return html.Iframe(srcDoc=map_html, width="100%", height="500px")
+    fig = go.Figure(
+        go.Scattermapbox(
+            lat=filtered_df["latitude"],
+            lon=filtered_df["longitude"],
+            mode="markers",
+            marker=dict(
+                size=10,
+                color=[color_map_dpe[etiq] for etiq in filtered_df["etiquette_dpe"]],
+                symbol="circle",
+            ),
+            text=[f"DPE: {etiq}" for etiq in filtered_df["etiquette_dpe"]],
+        ),
+        layout=dict(
+            uirevision="constant",  # This maintains the zoom/position state
+            mapbox=dict(
+                style="open-street-map",
+                zoom=12,
+                center={"lat": 45.7440, "lon": 4.8457},
+            ),
+            margin={"r": 0, "t": 0, "l": 0, "b": 0},
+            height=700,
+        ),
+    )
+
+    # Retourner le Graph avec l'option scrollZoom activée
+    return dcc.Graph(
+        figure=fig,
+        config={
+            "scrollZoom": True,
+            "displayModeBar": True,
+        },
+    )
