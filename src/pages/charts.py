@@ -114,7 +114,7 @@ def create_charts_page():
                             # Graphique 3: Distribution des surfaces
                             html.Div(
                                 [
-                                    html.H3("Distribution des surfaces des logements"),
+                                    html.H3("Distribution de la surface des logements"),
                                     dcc.Graph(id="distribution_surf"),
                                 ],
                                 className="col-md-6",
@@ -145,7 +145,7 @@ def create_charts_page():
                             html.Div(
                                 [
                                     html.H3(
-                                        "Scatter plot surface / consommation par étiquette DPE"
+                                        "Corrélation surface / consommation par étiquette DPE"
                                     ),
                                     # Boutons radio pour choisir la variable de regroupement
                                     dcc.RadioItems(
