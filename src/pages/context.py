@@ -110,6 +110,8 @@ def create_context_page():
                             "alignItems": "center",
                             "justifyContent": "center",
                             "marginBottom": "20px",
+                            "marginLeft": "10px",
+                            "marginTop": "10px",
                         },
                     ),
                 ],

@@ -89,3 +89,19 @@
 button:hover {
     background-color: #0097a7;
 }
+
+#predict-button {
+    width: 200px; /* Largeur fixe pour le bouton */
+    padding: 10px; /* Espacement à l'intérieur du bouton */
+    font-size: 18px; /* Taille de la police */
+    font-weight: bold; /* Mettre le texte en gras */
+    border-radius: 25px; /* Coins arrondis */
+    background-color: #56b536; /* Couleur du fond du bouton */
+    color: white; /* Couleur du texte */
+    border: none; /* Retirer la bordure */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Ombre portée pour un effet de profondeur */
+    transition: all 0.3s ease-in-out; /* Transition douce pour les effets */
+    display: block; /* Faire en sorte que le bouton soit un bloc */
+    margin-left: auto; /* Centrer horizontalement */
+    margin-right: auto; /* Centrer horizontalement */
+}
