@@ -8,6 +8,7 @@ def create_navbar():
             dbc.NavItem(dbc.NavLink("Context", href="/context")),
             dbc.NavItem(dbc.NavLink("Charts", href="/charts")),
             dbc.NavItem(dbc.NavLink("Map", href="/map")),
+            dbc.NavItem(dbc.NavLink("Prédiction", href="/predict")),
             dbc.NavItem(dbc.NavLink("About", href="/about")),
         ],
         brand="Mon Application Dash",
