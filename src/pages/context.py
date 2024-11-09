@@ -296,7 +296,7 @@ def create_filter(id, label, options):
         Input("type-energie-filter", "value"),
         Input("code-postal-filter", "value"),
     ],
-    prevent_initial_call=True,
+    prevent_initial_call=False,
 )
 def update_table(
     page_current,
