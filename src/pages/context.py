@@ -153,7 +153,7 @@ def create_context_page():
             html.Div(
                 [
                     html.Button(
-                        "Exporter la sélection filtrée (CSV)",
+                        "Exporter la sélection (CSV)",
                         id="btn-export",
                         n_clicks=0,
                         style={
@@ -298,7 +298,7 @@ def create_filter(id, label, options):
         Input("type-energie-filter", "value"),
         Input("code-postal-filter", "value"),
     ],
-    prevent_initial_call=True,
+    prevent_initial_call=False,
 )
 def update_table(
     page_current,
