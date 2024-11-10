@@ -1,6 +1,6 @@
 import logging
-import os
 from venv import logger
+import joblib
 import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -18,8 +18,23 @@ from sklearn.impute import KNNImputer
 from sklearn.model_selection import KFold
 
 
+# Module de préparation des données pour la prédiction de la consommation et de l'étiquette DPE.
+
+import pandas as pd
+import logging
+
+# --- Fonctions de Prétraitement ---
+
 def categoriser_annee_construction(valeur):
+    """
+    Catégorise l'année de construction en tranches temporelles.
     
+    Paramètre:
+        valeur (int): Année de construction du logement.
+        
+    Retourne:
+        str: Catégorie temporelle de construction.
+    """
     if valeur <= 1960:
         return 'Avant 1960'
     elif 1960 < valeur <= 1970:
@@ -38,6 +53,9 @@ def categoriser_annee_construction(valeur):
         return 'Après 2020'
     else:
         return 'Inconnue'
+
+
+# Dictionnaire pour la conversion des accents en lettres sans accent
 accents = {
     'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
     'à': 'a', 'â': 'a', 'ä': 'a',
@@ -50,39 +68,42 @@ accents = {
 # Liste des caractères spéciaux à remplacer par un underscore
 special_chars = [' ', '/', '(', ')', '-', ',', '.', '°']
 
-def replace_chars(text):
-    # Remplacer les accents
+def clean_text(text):
+    """
+    Nettoie une chaîne de caractères en remplaçant les accents et caractères spéciaux.
+    
+    Paramètre:
+        text (str): Texte à nettoyer.
+        
+    Retourne:
+        str: Texte nettoyé, avec accents et caractères spéciaux remplacés.
+    """
+    # Remplace les accents par leur équivalent sans accent
     for accent, sans_accent in accents.items():
         text = text.replace(accent, sans_accent)
 
-    # Remplacer les caractères spéciaux par un underscore
+    # Remplace les caractères spéciaux par un underscore
     for char in special_chars:
         text = text.replace(char, '_')
 
-    # Supprimer les underscores consécutifs
+    # Supprime les underscores consécutifs et en début/fin
     while '__' in text:
         text = text.replace('__', '_')
-
-    # Supprimer les underscores au début et à la fin d'une chaine
     return text.strip('_').lower()
 
-def clean_string(text):
-    # Remplacer les accents
-    for accent, sans_accent in accents.items():
-        text = text.replace(accent, sans_accent)
 
-    # Remplacer les caractères spéciaux par un underscore
-    for char in special_chars:
-        text = text.replace(char, '_')
-
-    # Supprimer les underscores consécutifs
-    while '__' in text:
-        text = text.replace('__', '_')
-
-    # Supprimer les underscores au début et à la fin et mettre en minuscules
-    return text.strip('_').lower()
-
-def delimiter_outliers(df,col, factor=1.5):
+def delimiter_outliers(df, col, factor=1.5):
+    """
+    Calcule les bornes pour identifier les valeurs aberrantes en utilisant l'IQR (Intervalle Interquartile).
+    
+    Paramètres:
+        df (DataFrame): Données contenant la colonne à analyser.
+        col (str): Nom de la colonne cible.
+        factor (float): Facteur d'étendue pour définir les limites, par défaut 1.5 pour IQR.
+        
+    Retourne:
+        tuple: Limites inférieure et supérieure pour les valeurs aberrantes.
+    """
     q1 = df[col].quantile(0.25)
     q3 = df[col].quantile(0.75)
     iqr = q3 - q1
@@ -90,79 +111,137 @@ def delimiter_outliers(df,col, factor=1.5):
     upper_bound = q3 + factor * iqr
     return lower_bound, upper_bound
 
-def remove_outliers(X_train, y_train, num_features, factor=1.5):
-    logger.info("Début du filtrage des outliers.")
-    
-    # Masque général pour conserver uniquement les lignes sans outliers
-    mask = pd.Series(True, index=X_train.index)
 
+def remove_outliers(X_train, y_train, num_features, factor=1.5, log_output=True):
+    """
+    Supprime les valeurs aberrantes des caractéristiques numériques spécifiées.
+    
+    Paramètres:
+        X_train (DataFrame): Données d'entraînement.
+        y_train (Series ou DataFrame): Cible d'entraînement.
+        num_features (list): Liste des noms de colonnes numériques à vérifier pour les outliers.
+        factor (float): Facteur d'IQR pour délimiter les outliers.
+        log_output (bool): Active les logs détaillés si True (par défaut).
+        
+    Retourne:
+        tuple: (X_train, y_train) filtrés sans outliers.
+    """
+    if log_output:
+        logging.info("Début du filtrage des outliers.")
+    
+    mask = pd.Series(True, index=X_train.index)  # Initialise le masque global
     for col in num_features:
         lower_bound, upper_bound = delimiter_outliers(X_train, col, factor=factor)
         col_mask = (X_train[col] >= lower_bound) & (X_train[col] <= upper_bound)
         mask &= col_mask  # Combine les masques pour chaque colonne
         
-        logger.info(f"Outliers supprimés pour la colonne {col}. Limites: [{lower_bound}, {upper_bound}]")
+        if log_output:
+            logging.info(f"Outliers supprimés pour {col}. Limites: [{lower_bound}, {upper_bound}]")
 
-    # Filtrer les lignes sans outliers
-    X_train = X_train[mask]
-    y_train = y_train[mask]
-    
-    logger.info(f"Filtrage effectué. Nouveau nombre de lignes dans X_train : {X_train.shape[0]}")
-    return X_train, y_train
+    # Filtrage final
+    return X_train[mask], y_train[mask]
 
 
 def remove_var_missing_values(X_train, X_test):
-# Seuil de valeurs manquantes à 30 %
-    missing_ratio_threshold = 0.3
+    """
+    Supprime les colonnes ayant un taux de valeurs manquantes supérieur au seuil défini.
+    
+    Paramètres:
+        X_train (DataFrame): Données d'entraînement.
+        X_test (DataFrame): Données de test.
+        missing_ratio_threshold (float): Seuil de valeurs manquantes, par défaut 30%.
+        
+    Retourne:
+        tuple: (X_train, X_test) filtrés et liste des colonnes supprimées.
+    """
+    missing_ratio_threshold=0.3
     missing_ratios = X_train.isnull().mean()
-
-    # Colonnes à conserver selon le seuil
     cols_to_keep = missing_ratios[missing_ratios < missing_ratio_threshold].index
-    X_train = X_train[cols_to_keep]
-    X_test = X_test[cols_to_keep]
-
     removed_columns = missing_ratios[missing_ratios >= missing_ratio_threshold].index
+    
     X_train = X_train[cols_to_keep]
     X_test = X_test[cols_to_keep]
-    logging.info("{} colonnes ont été supprimées car le pourcentage de valeurs manquantes excédait {}% :\n{}".format(
-        len(removed_columns), missing_ratio_threshold * 100, removed_columns.tolist()))    
+    
+    logging.info(f"{len(removed_columns)} colonnes supprimées (> {missing_ratio_threshold*100}% manquants) :\n{removed_columns.tolist()}")
     return X_train, X_test
 
-def reg_codes_postaux(X_train,threshold_code_postal = 200):
-    # Regroupement des codes postaux rares
-    if 'code_postal_ban' in X_train.columns:
-        # Calcul des codes fréquents selon le seuil
-        frequent_codes = X_train['code_postal_ban'].value_counts()[lambda x: x > threshold_code_postal].index
-        X_train['code_postal_ban'] = X_train['code_postal_ban'].where(X_train['code_postal_ban'].isin(frequent_codes), 'Autres')
-    return X_train
+
+def reg_codes_postaux(X_train, col='code_postal_ban', threshold_code_postal=200):
+    """
+    Regroupe les codes postaux peu fréquents dans une catégorie 'Autres'.
     
-def reg_types_energie(X_train, threshold_energy=100):    
-    # Regroupement des types d'énergie
-    frequent_energies = X_train['type_energie_n_1'].value_counts()[lambda x: x >= threshold_energy].index
-    X_train['type_energie_n_1'] = X_train['type_energie_n_1'].where(X_train['type_energie_n_1'].isin(frequent_energies), 'Autres')
+    Paramètres:
+        X_train (DataFrame): Données d'entraînement.
+        col (str): Nom de la colonne des codes postaux.
+        threshold_code_postal (int): Seuil de fréquence pour conserver un code postal.
+        
+    Retourne:
+        DataFrame: Données avec codes postaux rares regroupés.
+    """
+    if col in X_train.columns:
+        frequent_codes = X_train[col].value_counts()[lambda x: x > threshold_code_postal].index
+        X_train[col] = X_train[col].where(X_train[col].isin(frequent_codes), 'Autres')
     return X_train
 
-def destroy_indexes(X_train,X_test,y_train,y_test):
-    if 'geopoint' in X_train.columns:
-        X_train = X_train.drop(columns=['geopoint'])
-    if 'geopoint' in X_test.columns:
-        X_test = X_test.drop(columns=['geopoint'])
+
+def reg_types_energie(X_train, threshold_energy=100):
+    """
+    Regroupe les types d'énergie peu fréquents sous une étiquette 'Autres'.
+    
+    Paramètres:
+        X_train (DataFrame): Données d'entraînement.
+        threshold_energy (int): Seuil de fréquence pour conserver un type d'énergie.
+        
+    Retourne:
+        DataFrame: Données avec types d'énergie rares regroupés.
+    """
+    if 'type_energie_n_1' in X_train.columns:
+        frequent_energies = X_train['type_energie_n_1'].value_counts()[lambda x: x >= threshold_energy].index
+        X_train['type_energie_n_1'] = X_train['type_energie_n_1'].where(X_train['type_energie_n_1'].isin(frequent_energies), 'Autres')
+    return X_train
+
+
+def destroy_indexes(X_train, X_test, y_train, y_test):
+    """
+    Supprime la colonne 'geopoint' si elle est présente et réinitialise les index.
+    
+    Paramètres:
+        X_train, X_test (DataFrame): Données d'entraînement et de test.
+        y_train, y_test (Series ou DataFrame): Cibles d'entraînement et de test.
+        
+    Retourne:
+        tuple: Données et cibles réinitialisées sans la colonne 'geopoint'.
+    """
+    for df in [X_train, X_test]:
+        if 'geopoint' in df.columns:
+            df.drop(columns=['geopoint'], inplace=True)
     
     # Réinitialisation des index
-    X_train = X_train.reset_index(drop=True)
-    X_test = X_test.reset_index(drop=True)
-    y_train = y_train.reset_index(drop=True)
-    y_test = y_test.reset_index(drop=True)
+    X_train, X_test = X_train.reset_index(drop=True), X_test.reset_index(drop=True)
+    y_train, y_test = y_train.reset_index(drop=True), y_test.reset_index(drop=True)
     
     return X_train, X_test, y_train, y_test
 
-def optimal_n_neighbors_for_knnimputer(X_train_quant, neighbors_to_test=[3, 5, 7, 10]):
-    logger.info("Calcul du meilleur nombre de voisins pour KNNImputer.")
 
+# --- Fonctions d'Optimisation et de Prétraitement --- 
+
+def optimal_n_neighbors_for_knnimputer(X_train_quant, neighbors_to_test=[3, 5, 7, 10]):
+    """
+    Trouve le nombre optimal de voisins pour l'imputation KNN en utilisant la validation croisée
+    et en minimisant le RMSE sur les valeurs manquantes.
+
+    Paramètres:
+        X_train_quant (DataFrame): Données quantitatives d'entraînement.
+        neighbors_to_test (list): Liste de nombres de voisins à tester.
+
+    Retourne:
+        int: Meilleur nombre de voisins pour l'imputation KNN.
+    """
+    logger.info("Calcul du meilleur nombre de voisins pour KNNImputer.")
     rmse_scores = []
     scaler = StandardScaler()
 
-    # Standardiser les données quantitatives
+    # Standardiser les données
     X_train_quant_scaled = pd.DataFrame(
         scaler.fit_transform(X_train_quant),
         columns=X_train_quant.columns,
@@ -175,189 +254,231 @@ def optimal_n_neighbors_for_knnimputer(X_train_quant, neighbors_to_test=[3, 5, 7
         rmse_fold = []
 
         for train_index, val_index in kf.split(X_train_quant_scaled):
+            # Séparation en plis de validation croisée
             X_train_fold = X_train_quant_scaled.iloc[train_index]
             X_val_fold = X_train_quant_scaled.iloc[val_index]
 
-            # Imputer les valeurs manquantes
+            # Imputation et inverse de la standardisation
             X_train_imputed_scaled = pd.DataFrame(
                 knn_imputer.fit_transform(X_train_fold),
                 index=X_train_fold.index,
                 columns=X_train_fold.columns
             )
-
-            # Inverse de la standardisation
             X_train_imputed = pd.DataFrame(
                 scaler.inverse_transform(X_train_imputed_scaled),
                 index=X_train_imputed_scaled.index,
                 columns=X_train_imputed_scaled.columns
             )
-            X_train_fold_orig = scaler.inverse_transform(X_train_fold)
-            X_train_fold_orig = pd.DataFrame(X_train_fold_orig, index=X_train_fold.index, columns=X_train_fold.columns)
+            X_train_fold_orig = pd.DataFrame(
+                scaler.inverse_transform(X_train_fold),
+                index=X_train_fold.index,
+                columns=X_train_fold.columns
+            )
 
-            # Calcul du RMSE uniquement sur les valeurs manquantes initiales
+            # Calcul du RMSE pour les valeurs manquantes
             mask_missing = X_train_fold_orig.isna()
-
-            # Calculer le RMSE par colonne
             rmse_per_column = []
             for col in X_train_fold.columns:
                 original_values = X_train_fold_orig[col][mask_missing[col]]
                 imputed_values = X_train_imputed[col][mask_missing[col]]
-
                 if len(original_values) > 0:
                     rmse = np.sqrt(np.mean((original_values - imputed_values) ** 2))
                     rmse_per_column.append(rmse)
-
-            # Moyenne du RMSE pour toutes les colonnes de ce pli
             rmse_fold.append(np.mean(rmse_per_column))
 
-        # Moyenne des RMSE des 5 plis
+        # Ajouter le score RMSE moyen pour ce nombre de voisins
         rmse_scores.append((n, np.mean(rmse_fold)))
 
-    # Sélection du meilleur nombre de voisins
+    # Meilleur nombre de voisins
     best_n = min(rmse_scores, key=lambda x: x[1])[0]
     logger.info(f"Le meilleur nombre de voisins pour KNNImputer est {best_n}.")
     return best_n
 
+
 def pca_app(X_train, variance_threshold=0.9):
-  pca = PCA(svd_solver='full')
-  pca.fit(X_train)
-# Variance expliquée par chaque composante
-  explained_variance = pca.explained_variance_ratio_
-  cumulative_variance = np.cumsum(explained_variance)
-  optimal_components = np.argmax(cumulative_variance >= 0.9) + 1  # Nombre de composants pour 90%
+    """
+    Applique l'analyse en composantes principales (ACP) pour déterminer le nombre de composants nécessaires 
+    pour atteindre un seuil de variance cumulative, et trace les résultats avec le test des bâtons brisés.
 
-# Calculer les valeurs du test des bâtons brisés
-  broken_stick_values = broken_stick_test(len(explained_variance))
+    Paramètres:
+        X_train (DataFrame): Données d'entraînement.
+        variance_threshold (float): Seuil de variance cumulative souhaité (par défaut 0.9 pour 90%).
 
-# Tracer la courbe de la variance expliquée et du test des bâtons brisés
-  plt.figure(figsize=(10, 6))
-  plt.plot(range(1, len(explained_variance) + 1), explained_variance, marker='o', label='Variance Expliquée')
-  plt.plot(range(1, len(explained_variance) + 1), broken_stick_values, label='Test des Bâtons Brisés', linestyle='--')
-  
-  plt.axvline(optimal_components, color='r', linestyle='--', label=f'{optimal_components} Composantes (pour {variance_threshold * 100:.0f}%)')
-  plt.title('Courbe de la Variance Expliquée vs Test des Bâtons Brisés')
-  plt.xlabel('Nombre de Composantes')
-  plt.ylabel('Variance Expliquée')
-  plt.legend()
-  plt.grid()
-  plt.show()
+    Retourne:
+        int: Nombre optimal de composants principaux.
+    """
+    pca = PCA(svd_solver='full')
+    pca.fit(X_train)
+    
+    explained_variance = pca.explained_variance_ratio_
+    cumulative_variance = np.cumsum(explained_variance)
+    optimal_components = np.argmax(cumulative_variance >= variance_threshold) + 1
 
-  return optimal_components
+    # Calcul du test des bâtons brisés
+    broken_stick_values = broken_stick_test(len(explained_variance))
+
+    # Tracé de la variance expliquée vs test des bâtons brisés
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(1, len(explained_variance) + 1), explained_variance, marker='o', label='Variance Expliquée')
+    plt.plot(range(1, len(explained_variance) + 1), broken_stick_values, label='Test des Bâtons Brisés', linestyle='--')
+    plt.axvline(optimal_components, color='r', linestyle='--', label=f'{optimal_components} Composantes (pour {variance_threshold * 100:.0f}%)')
+    plt.title('Courbe de la Variance Expliquée vs Test des Bâtons Brisés')
+    plt.xlabel('Nombre de Composantes')
+    plt.ylabel('Variance Expliquée')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+    return optimal_components
+
 
 def broken_stick_test(num_components):
-    broken_stick_values = [sum(1 / j for j in range(i, num_components + 1)) / num_components for i in range(1, num_components + 1)]
-    return broken_stick_values
+    """
+    Calcule les valeurs de référence pour le test des bâtons brisés.
 
+    Paramètres:
+        num_components (int): Nombre de composants à tester.
+
+    Retourne:
+        list: Valeurs de référence pour chaque composant.
+    """
+    return [sum(1 / j for j in range(i, num_components + 1)) / num_components for i in range(1, num_components + 1)]
 
 
 def preprocess_all_data(dfa, dfn):
+    """
+    Prépare et combine les données d'anciens et nouveaux logements, en appliquant diverses transformations
+    et en créant de nouvelles caractéristiques.
+
+    Paramètres:
+        dfa (DataFrame): Données de logements anciens.
+        dfn (DataFrame): Données de logements neufs.
+
+    Retourne:
+        tuple: DataFrames transformés (df, df_all) pour modélisation et analyse.
+    """
     logger.info("Début du prétraitement des données.")
     
-    # Ajout de la colonne 'logement' pour distinguer ancien/neuf
-    logger.info("Ajout de la colonne 'logement' aux deux DataFrames.")
+    # Ajout de l'indicateur 'logement' et imputation des années de construction
     dfa['logement'] = "ancien"
     dfn['logement'] = "neuf"
-    
-    # Remplacer les années de construction manquantes dans dfn par l'année actuelle
     current_year = pd.Timestamp.now().year
-    logger.info(f"Remplacement des années de construction manquantes par l'année {current_year}.")
     dfn['Année_construction'] = current_year
-    
-    # Trouver les colonnes communes aux deux DataFrames
-    col_communes = list(set(dfa.columns) & set(dfn.columns))
-    logger.info(f"Colonnes communes aux deux DataFrames: {col_communes}")
-
     # Concaténation des DataFrames sur les colonnes communes
+    col_communes = list(set(dfa.columns) & set(dfn.columns))
     df = pd.concat([dfa[col_communes], dfn[col_communes]], ignore_index=True)
     logger.info(f"DataFrame combiné avec {df.shape[0]} lignes et {df.shape[1]} colonnes.")
-    df = df.dropna(subset=['Conso_5_usages_é_finale'])
-    # Création de la colonne 'passoire_energetique'
-    df["passoire_energetique"] = df['Etiquette_DPE'].isin(['F', 'G']).astype(str).map({'True': 'oui', 'False': 'non'})
-    logger.info("Création de la colonne 'passoire_energetique' basée sur l'étiquette DPE.")
+    
+    # Filtrage des enregistrements non nulls dans 'Conso_5_usages_é_finale'
+    df.dropna(subset=['Conso_5_usages_é_finale'], inplace=True)
 
-    # Catégoriser la période de construction
+    # Création de la colonne 'passoire_energetique' selon l'étiquette DPE
+    df["passoire_energetique"] = df['Etiquette_DPE'].isin(['F', 'G']).astype(str).map({'True': 'oui', 'False': 'non'})
+
+    # Catégorisation des périodes de construction et nettoyage des données temporelles
     df['periode_construction'] = df['Année_construction'].apply(categoriser_annee_construction)
     df.drop(columns=['Année_construction'], inplace=True)
-    logger.info("Catégorisation des années de construction effectuée.")
-
-    # Conversion des dates en datetime et en timestamp UNIX
     df['Date_réception_DPE'] = pd.to_datetime(df['Date_réception_DPE'], errors='coerce')
     df['Timestamp_réception_DPE'] = df['Date_réception_DPE'].astype('int64') // 10**9
+    df['Hauteur_sous-plafond'] = df['Hauteur_sous-plafond'].astype(float)
+    
     df.drop(columns=['Date_réception_DPE'], inplace=True)
-    logger.info("Conversion des dates en timestamp UNIX.")
 
-    # Conversion de certaines colonnes en chaînes de caractères pour uniformité
+    # Conversion de certaines colonnes en chaînes pour cohérence
     df['Code_postal_(BAN)'] = df['Code_postal_(BAN)'].astype(str)
     df['N°_étage_appartement'] = df['N°_étage_appartement'].astype(str)
-    logger.info("Conversion des colonnes spécifiques en chaînes de caractères effectuée.")
-    
-    # Nettoyage des noms de colonnes pour enlever accents et caractères spéciaux
-    df = df.rename(columns=lambda x: replace_chars(x))
-    
 
-    # Exclusion de colonnes non actives (comme geopoint)
+    # Nettoyage des noms de colonnes
+    df = df.rename(columns=lambda x: clean_text(x))
+
+    # Suppression de colonnes non actives et création du DataFrame final
     columns_to_exclude = ['geopoint']
-    logger.info(f"Colonnes après nettoyage : {df.columns}")
     active_features = df.columns.difference(columns_to_exclude).tolist()
-    logger.info(df.isnull().sum())
-    # Création de df_all pour conserver toutes les données et df pour le modèle
     df_all = df.copy()
     df = df[active_features]
-    logger.info(f"DataFrame df réduit aux caractéristiques actives.,{df.shape}")
-
+    
+    logger.info(f"DataFrame df réduit aux caractéristiques actives: {df.shape}.")
     return df, df_all
 
+# --- Fonctions de Prétraitement et de Sélection de Caractéristiques ---
 
-def preprocess_splitted_data(df,column_name, is_classification=True):
+def preprocess_splitted_data(df, column_name, is_classification=True):
+    """
+    Divise les données en ensembles d'entraînement et de test, effectue divers prétraitements, et
+    identifie les colonnes numériques et catégorielles.
 
-    X = df.drop(columns=[column_name])  
-    y = df[column_name]                  
+    Paramètres:
+        df (DataFrame): Le DataFrame à diviser et prétraiter.
+        column_name (str): Le nom de la colonne cible.
+        is_classification (bool): Indique si la tâche est de classification (True) ou de régression (False).
 
+    Retourne:
+        tuple: (X_train, X_test, y_train, y_test, num_features, cat_features)
+    """
+    # Séparation des caractéristiques (X) et de la cible (y)
+    X = df.drop(columns=[column_name])
+    y = df[column_name]
+
+    # Option de stratification si classification
     stratify_option = y if is_classification else None
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=stratify_option
     )
 
+    # Gestion de la colonne 'n_dpe' pour correspondre aux index si présente
     if 'n_dpe' in X_train.columns:
         X_train.set_index('n_dpe', inplace=True)
         X_test.set_index('n_dpe', inplace=True)
-        y_train.index = X_train.index 
-        y_test.index = X_test.index 
+        y_train.index = X_train.index
+        y_test.index = X_test.index
 
+    # Séparation des caractéristiques numériques et catégorielles
     num_features = X_train.select_dtypes(include=['float64', 'int']).columns
     cat_features = X_train.select_dtypes(include=['object', 'category']).columns
 
+    # Nettoyage des valeurs manquantes et recalcul des caractéristiques
     X_train, X_test = remove_var_missing_values(X_train, X_test)
-    # Recalculation des caractéristiques numériques et catégorielles après nettoyage
     num_features = X_train.select_dtypes(include=['float64', 'int']).columns
     cat_features = X_train.select_dtypes(include=['object', 'category']).columns
 
-    X_train, y_train = remove_outliers(X_train, y_train,num_features)
+    # Suppression des valeurs aberrantes et transformations spécifiques
+    X_train, y_train = remove_outliers(X_train, y_train, num_features)
     X_train = reg_codes_postaux(X_train)
     X_train = reg_types_energie(X_train)
 
-    return X_train, X_test, y_train, y_test,num_features,cat_features
+    return X_train, X_test, y_train, y_test, num_features, cat_features
 
 
-def preprocess_pipeline(X_train,num_features,cat_features):
-# Extraction des colonnes quantitatives
+def preprocess_pipeline(X_train, num_features, cat_features):
+    """
+    Construit un pipeline de prétraitement avec imputation et normalisation pour les variables numériques
+    et encodage pour les variables catégorielles.
+
+    Paramètres:
+        X_train (DataFrame): Données d'entraînement.
+        num_features (Index): Colonnes numériques de X_train.
+        cat_features (Index): Colonnes catégorielles de X_train.
+
+    Retourne:
+        ColumnTransformer: Pipeline de prétraitement complet pour l'application aux données.
+    """
+    # Imputation KNN avec le meilleur nombre de voisins
     X_train_quant = X_train[num_features]
-
-# Calcul du meilleur nombre de voisins pour le KNNImputer
     best_n_neighbors = optimal_n_neighbors_for_knnimputer(X_train_quant)
 
+    # Pipeline pour les caractéristiques numériques
     numeric_transformer = Pipeline(steps=[
         ('imputer', KNNImputer(n_neighbors=best_n_neighbors)),
         ('scaler', StandardScaler())
     ])
 
+    # Pipeline pour les caractéristiques catégorielles
     categorical_transformer = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy='most_frequent')),
-        ('encoder', OneHotEncoder(handle_unknown='ignore',sparse_output=False, drop='first'))
-        
+        ('encoder', OneHotEncoder(handle_unknown='ignore', sparse_output=False, drop='first'))
     ])
 
-
+    # Assemblage du transformateur de colonnes
     preprocessor = ColumnTransformer(
         transformers=[
             ('num', numeric_transformer, num_features),
@@ -366,140 +487,29 @@ def preprocess_pipeline(X_train,num_features,cat_features):
     )
 
     return preprocessor
-# Définir la fonction de sélection de features
-  
+
 
 def feature_selection_classification(X_train, y_train):
-     # Initialisation du RandomForestClassifier pour sélectionner les caractéristiques
+    """
+    Sélectionne les caractéristiques importantes pour une tâche de classification en utilisant un modèle
+    RandomForestClassifier.
+
+    Paramètres:
+        X_train (DataFrame): Données d'entraînement.
+        y_train (Series): Étiquettes d'entraînement.
+
+    Retourne:
+        tuple: (X_train_reduced, selector) où X_train_reduced est X_train réduit aux caractéristiques sélectionnées.
+    """
+    # Initialisation et ajustement du RandomForestClassifier
     model = RandomForestClassifier(n_estimators=100, random_state=42)
-
-    # Création de SelectFromModel sans prefit=True
     selector = SelectFromModel(model)
-    selector.fit(X_train, y_train)  # entraînement du modèle ici
+    selector.fit(X_train, y_train)
 
-    # Transformer les données pour ne garder que les caractéristiques sélectionnées
+    # Transformation pour conserver uniquement les caractéristiques importantes
     X_train_reduced = selector.transform(X_train)
 
     return X_train_reduced, selector
 
-def feature_selection_regression(X_train, y_train):
-    # Initialisation du RandomForestRegressor pour sélectionner les caractéristiques
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
-    
-    # Entraînement du modèle de régression
-    model.fit(X_train, y_train)
+model = joblib.load('src/utils/models/classifier_model_v0.joblib')
 
-    # Sélection des caractéristiques importantes avec un seuil défini (par exemple, la moyenne)
-    selector = SelectFromModel(model)
-
-    X_train_reduced = selector.transform(X_train)
-
-    # Retourner les données réduites et le modèle
-    return X_train_reduced, selector
-
-
-# def handle_missing_values_in_X_y_test(X_test, y_test, num_features, cat_features, threshold=0.05):
-   
-#     # Gestion des valeurs manquantes dans X_test
-#     missing_values_count_X = X_test.isnull().sum()
-#     print("Nombre de valeurs manquantes dans X_test :")
-#     print(missing_values_count_X)
-
-#     # Colonnes avec des valeurs manquantes au-dessus du seuil
-#     columns_to_impute_X = missing_values_count_X[missing_values_count_X > X_test.shape[0] * threshold].index
-
-#     # Séparer les colonnes numériques et catégorielles dans X_test
-#     numeric_columns_to_impute = [col for col in columns_to_impute_X if col in num_features]
-#     categorical_columns_to_impute = [col for col in columns_to_impute_X if col in cat_features]
-
-#     # Imputation des colonnes numériques de X_test (par la moyenne)
-#     if numeric_columns_to_impute:
-#         print("Imputation des colonnes numériques dans X_test :")
-#         print(numeric_columns_to_impute)
-#         imputer_numeric = SimpleImputer(strategy='mean')
-#         X_test[numeric_columns_to_impute] = imputer_numeric.fit_transform(X_test[numeric_columns_to_impute])
-
-#     # Imputation des colonnes catégorielles de X_test (par la valeur la plus fréquente)
-#     if categorical_columns_to_impute:
-#         print("Imputation des colonnes catégorielles dans X_test :")
-#         print(categorical_columns_to_impute)
-#         imputer_categorical = SimpleImputer(strategy='most_frequent')
-#         X_test[categorical_columns_to_impute] = imputer_categorical.fit_transform(X_test[categorical_columns_to_impute])
-
-#     # Si aucune colonne de X_test ne dépasse le seuil, suppression des lignes avec NaN dans X_test
-#     if columns_to_impute_X.empty:
-#         print("Aucune colonne de X_test avec un nombre élevé de valeurs manquantes, suppression des lignes concernées.")
-#         X_test = X_test.dropna()
-
-#     # Gestion des valeurs manquantes dans y_test
-#     if y_test.isnull().sum() > 0:
-#         print("Valeurs manquantes détectées dans y_test.")
-        
-#         # Suppression des lignes de X_test et y_test où y_test est NaN
-#         mask = y_test.notnull()
-#         X_test = X_test[mask]
-#         y_test = y_test[mask]
-#         print(f"{(~mask).sum()} lignes supprimées en raison de valeurs manquantes dans y_test.")
-        
-#     # Vérification des valeurs manquantes après traitement
-#     print("\nValeurs manquantes après traitement dans X_test :")
-#     print(X_test.isnull().sum())
-#     print("\nValeurs manquantes après traitement dans y_test :")
-#     print(y_test.isnull().sum())
-
-#     return X_test, y_test
-
-
-
-
-
-
-
-# def preprocess_pipeline(X_train, num_features, cat_features, save_csv_path=None):
-#     # Extraction des colonnes quantitatives
-#     X_train_quant = X_train[num_features]
-
-#     # Calcul du meilleur nombre de voisins pour le KNNImputer
-#     best_n_neighbors = optimal_n_neighbors_for_knnimputer(X_train_quant)
-
-#     numeric_transformer = Pipeline(steps=[
-#         ('imputer', KNNImputer(n_neighbors=best_n_neighbors)) 
-#     ])
-
-#     categorical_transformer = Pipeline(steps=[
-#         ('imputer', SimpleImputer(strategy='most_frequent')),
-#     ])
-
-#     preprocessor = ColumnTransformer(
-#         transformers=[
-#             ('num', numeric_transformer, num_features),
-#             ('cat', categorical_transformer, cat_features)
-#         ]
-#     )
-    
-#     # Appliquer le préprocesseur (sans appliquer l'encodeur OneHotEncoder)
-#     # Cela inclut l'imputation et la mise à l'échelle mais sans encoder les variables catégorielles
-#     X_train_transformed = preprocessor.fit_transform(X_train)
-
-#     # Convertir les résultats après transformation en DataFrame
-#     # Pour les variables numériques
-#      # 1. Pour les variables numériques
-#     X_train_num = pd.DataFrame(X_train_transformed[:, :len(num_features)], columns=num_features)
-    
-#     # 2. Pour les variables catégorielles
-#     X_train_cat = pd.DataFrame(X_train_transformed[:, len(num_features):], columns=cat_features)
-
-#     # Fusionner les deux DataFrames (numériques et catégoriques)
-#     X_train_final = pd.concat([X_train_num, X_train_cat], axis=1)
-#     if save_csv_path:
-#         # Vérifiez si le répertoire existe, sinon, créez-le
-#         directory = os.path.dirname(save_csv_path)
-#         if directory and not os.path.exists(directory):
-#             os.makedirs(directory)
-#             print(f"Répertoire créé : {directory}")
-        
-#         # Sauvegarder le fichier CSV
-#         X_train_final.to_csv(save_csv_path, index=False)
-#         print(f"Jeu de données sauvegardé dans {save_csv_path}")
-#     # Retourner le préprocesseur pour pouvoir l'utiliser dans un pipeline complet
-#     return preprocessor
