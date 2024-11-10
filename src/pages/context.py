@@ -136,7 +136,7 @@ def create_context_page():
                     html.Div(
                         [
                             create_kpi_card(
-                                "fas fa-chart-line",
+                                "fas fa-calendar-alt",
                                 "DPE établis de",
                                 f"{datetime.strptime(kpi['date_min'], '%Y-%m').strftime('%B %Y')} à {datetime.strptime(kpi['date_max'], '%Y-%m').strftime('%B %Y')}",
                             ),
@@ -168,19 +168,19 @@ def create_context_page():
                     html.Div(
                         [
                             create_kpi_card(
-                                "fas fa-calendar-alt",
+                                "fa-solid fa-square-poll-vertical",
                                 "DPE le plus courant",
                                 kpi["mode_dpe"],
                             ),
                             create_kpi_card(
-                                "fas fa-map-marker-alt",
+                                "fas fa-chart-line",
                                 "Consommation moyenne",
-                                f"{kpi["conso_moyenne_m2"]} kWhef/an/m²",
+                                f"{kpi['conso_moyenne_m2']} kWhef/an/m²",
                             ),
                             create_kpi_card(
-                                "fas fa-map-marker-alt",
+                                "fa-solid fa-percent",
                                 "Taux de passoires énergétiques",
-                                f"{kpi["taux_passoire"]} %",
+                                f"{kpi['taux_passoire']} %",
                             ),
                         ],
                         style={
