@@ -26,6 +26,9 @@ share/python-wheels/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Ignore the build directory
+_build/
+
 # Environments
 .env
 .venv/
@@ -41,6 +44,12 @@ env/
 # Logs and caches
 *.log
 *.cache
+*.tmp
+
+# Ne pas ignorer le dossier source des fichiers de documentation
+!docs/
+!*.rst
+!conf.py
 
 # Dash-related assets and cached data
 assets/__pycache__/

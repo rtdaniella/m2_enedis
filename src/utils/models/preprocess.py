@@ -3,7 +3,7 @@ from venv import logger
 import joblib
 import pandas as pd
 from sklearn.decomposition import PCA
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectFromModel
 from sklearn.impute import KNNImputer, SimpleImputer
 from sklearn.model_selection import train_test_split
@@ -511,5 +511,4 @@ def feature_selection_classification(X_train, y_train):
 
     return X_train_reduced, selector
 
-model = joblib.load('src/utils/models/classifier_model_v0.joblib')
 
