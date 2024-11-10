@@ -58,7 +58,7 @@ def create_sidenav():
                                     active="exact"
                                 ),
                                 dbc.NavLink(
-                                    [html.I(className="fas fa-map-marker-alt me-2"), "Cartes"],  # Icône pour "Map"
+                                    [html.I(className="fas fa-map-marker-alt me-2"), "Carte"],  # Icône pour "Map"
                                     href="/map",
                                     className="nav-link text-white",
                                     active="exact"
