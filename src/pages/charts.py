@@ -76,8 +76,8 @@ def create_charts_page():
                     "alignItems": "center",
                     "justifyContent": "center",  # Centrer le contenu horizontalement
                     "marginBottom": "30px",
-                    "marginLeft": "260px",  # Décalage pour la SideNav
-                    "marginTop": "20px",
+                    "marginLeft": "10px",  # Décalage pour la SideNav
+                    "marginTop": "10px",
                     "marginRight": "10px",
                 },
             ),

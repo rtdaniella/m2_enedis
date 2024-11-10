@@ -4,10 +4,15 @@ from dash import html, dash_table, dcc, Input, Output, callback, State
 import dash
 from datetime import datetime
 import numpy as np
+import locale
 
-# Constantes pour la pagination
+
+# Constantes
+# Pour la pagination
 PAGE_SIZE = 15
 INITIAL_PAGE = 0
+# Pour la langue
+locale.setlocale(locale.LC_TIME, "fr_FR.UTF-8")
 
 
 @lru_cache(maxsize=1)
@@ -61,10 +66,17 @@ def get_unique_values():
 
 
 def calculate_kpis(data):
+    conso_moyenne_m2 = (
+        data["conso_5_usages_e_finale"].div(data["surface_habitable_logement"]).mean()
+    )
     return {
         "total_entries": len(data),
-        "average_dpe": data["etiquette_dpe"].mode().iloc[0],
-        "total_postals": data["code_postal_ban"].nunique(),
+        "mode_dpe": data["etiquette_dpe"].mode().iloc[0],
+        "total_cp": data["code_postal_ban"].nunique(),
+        "date_min": data["yearmonth"].astype("str").min(),
+        "date_max": data["yearmonth"].astype("str").max(),
+        "conso_moyenne_m2": str(round(conso_moyenne_m2, 0)).split(".")[0],
+        "taux_passoire": round(100 * data["passoire_energetique"].eq("oui").mean(), 2),
     }
 
 
@@ -110,31 +122,33 @@ def create_context_page():
                             "alignItems": "center",
                             "justifyContent": "center",
                             "marginBottom": "20px",
+                            "marginLeft": "10px",
+                            "marginTop": "10px",
                         },
                     ),
                 ],
                 type="default",
             ),
-            # KPI Cards avec Lazy Loading
+            # Ligne 1 KPI Cards avec Lazy Loading
             dcc.Loading(
                 id="loading-kpis",
                 children=[
                     html.Div(
                         [
                             create_kpi_card(
+                                "fas fa-chart-line",
+                                "DPE établis de",
+                                f"{datetime.strptime(kpi['date_min'], '%Y-%m').strftime('%B %Y')} à {datetime.strptime(kpi['date_max'], '%Y-%m').strftime('%B %Y')}",
+                            ),
+                            create_kpi_card(
                                 "fas fa-house-user",
                                 "Total des Entrées",
                                 kpi["total_entries"],
                             ),
                             create_kpi_card(
-                                "fas fa-calendar-alt",
-                                "DPE le plus courant",
-                                kpi["average_dpe"],
-                            ),
-                            create_kpi_card(
                                 "fas fa-map-marker-alt",
-                                "Total des Codes Postaux",
-                                kpi["total_postals"],
+                                "Total des Codes Postaux du Rhône",
+                                kpi["total_cp"],
                             ),
                         ],
                         style={
@@ -147,11 +161,45 @@ def create_context_page():
                 ],
                 type="default",
             ),
+            # Ligne 2 KPI Cards avec Lazy Loading
+            dcc.Loading(
+                id="loading-kpis",
+                children=[
+                    html.Div(
+                        [
+                            create_kpi_card(
+                                "fas fa-calendar-alt",
+                                "DPE le plus courant",
+                                kpi["mode_dpe"],
+                            ),
+                            create_kpi_card(
+                                "fas fa-map-marker-alt",
+                                "Consommation moyenne",
+                                f"{kpi["conso_moyenne_m2"]} kWhef/an/m²",
+                            ),
+                            create_kpi_card(
+                                "fas fa-map-marker-alt",
+                                "Taux de passoires énergétiques",
+                                f"{kpi["taux_passoire"]} %",
+                            ),
+                        ],
+                        style={
+                            "display": "flex",
+                            "justifyContent": "center",
+                            "gap": "20px",
+                            "marginBottom": "30px",
+                        },
+                    )
+                ],
+                type="default",
+            ),
+            # Filtres optimisés
+            html.Div([create_filter_section(unique_values)]),
             # Bouton d'exportation
             html.Div(
                 [
                     html.Button(
-                        "Exporter la sélection filtrée (CSV)",
+                        "Exporter les données (CSV)",
                         id="btn-export",
                         n_clicks=0,
                         style={
@@ -172,8 +220,6 @@ def create_context_page():
                 ],
                 style={"textAlign": "center", "marginTop": "20px"},
             ),
-            # Filtres optimisés
-            html.Div([create_filter_section(unique_values)]),
             # DataTable avec pagination côté serveur
             dcc.Loading(
                 id="loading-table",
@@ -223,6 +269,7 @@ def create_kpi_card(icon_class, title, value):
             "borderRadius": "10px",
             "padding": "20px",
             "width": "250px",
+            "height": "170px",
             "textAlign": "center",
             "boxShadow": "0 4px 8px rgba(0,0,0,0.2)",
             "backgroundColor": "#2a6cb2",
@@ -296,7 +343,7 @@ def create_filter(id, label, options):
         Input("type-energie-filter", "value"),
         Input("code-postal-filter", "value"),
     ],
-    prevent_initial_call=True,
+    prevent_initial_call=False,
 )
 def update_table(
     page_current,

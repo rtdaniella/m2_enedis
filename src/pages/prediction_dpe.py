@@ -128,6 +128,7 @@ def create_pred_dpe_page():
                                     *form_inputs,  # Insertion des champs de formulaire générés dynamiquement
                                     dbc.Button(
                                         "Prédire",
+
                                         id="predict-button-dpe",
                                         
                                     ),
@@ -157,7 +158,9 @@ def create_pred_dpe_page():
                                         },
                                     ),
                                     html.Div(
+
                                         id="prediction-result-dpe",
+
                                         className="mt-3",
                                         style={
                                             "fontSize": "36px",  # Taille de police du résultat
@@ -196,3 +199,4 @@ def create_pred_dpe_page():
         ]
     )
     return layout
+

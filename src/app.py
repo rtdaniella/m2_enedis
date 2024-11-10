@@ -9,7 +9,6 @@ from pages.context import create_context_page
 from pages.charts import create_charts_page  
 from pages.map import create_map_page  
 from pages.not_found_404 import create_not_found_page
-# Importer les pages de prédiction
 from pages.prediction_dpe import create_pred_dpe_page
 from pages.prediction_conso import create_pred_conso_page
 from utils.models.predict_classifier import predict_classifier  # Fonction pour effectuer la prédiction

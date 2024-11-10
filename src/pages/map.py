@@ -51,8 +51,8 @@ def create_map_page():
                     "alignItems": "center",
                     "justifyContent": "center",  # Centrer le contenu horizontalement
                     "marginBottom": "30px",
-                    "marginLeft": "260px",  # Décalage pour la SideNav
-                    "marginTop": "20px",
+                    "marginLeft": "10px",  # Décalage pour la SideNav
+                    "marginTop": "10px",
                     "marginRight": "10px",
                 },
             ),
@@ -99,7 +99,11 @@ def update_map(selected_dpe):
                 color=[color_map_dpe[etiq] for etiq in filtered_df["etiquette_dpe"]],
                 symbol="circle",
             ),
-            text=[f"DPE: {etiq}" for etiq in filtered_df["etiquette_dpe"]],
+            text=[
+                f"DPE: {row['etiquette_dpe']}<br>Logement {row['logement']}, {row['surface_habitable_logement']} m²"
+                for _, row in filtered_df.iterrows()
+            ],
+            hoverinfo="text",  # Only show the text in the hover info
         ),
         layout=dict(
             uirevision="constant",  # This maintains the zoom/position state
