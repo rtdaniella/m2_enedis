@@ -3,7 +3,7 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 # Charger le fichier CSV des données DPE
-df = pd.read_csv("../files/data_classification.csv")
+df = pd.read_csv("src/files/data_classification.csv")
 
 # Liste des variables à inclure dans le formulaire
 form_fields = [

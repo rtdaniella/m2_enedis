@@ -3,7 +3,7 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 # Charger le fichier CSV des données DPE
-df = pd.read_csv("../files/data_regressor.csv")
+df = pd.read_csv("src/files/data_regressor.csv")
 
 # Liste des variables à inclure dans le formulaire
 form_fields_conso = [
@@ -66,68 +66,6 @@ def generate_form_fields(df, form_fields, cat_features, num_features):
     return form_inputs
 
 form_inputs = generate_form_fields(df, form_fields_conso, cat_features__regressor, num_features__regressor)
-
-
-# # Générer dynamiquement les champs en fonction des valeurs uniques dans le CSV, uniquement pour les champs spécifiés
-# def generate_form_fields(df, fields):
-#     form_fields = []
-
-#     for column in fields:
-#         # Vérifier si la colonne existe dans le DataFrame pour éviter les erreurs
-#         if column in df.columns:
-#             # Récupérer les valeurs uniques de la colonne
-#             unique_values = df[column].dropna().unique()
-
-#             # Si la colonne est 'periode_construction', trier les valeurs en ordre décroissant
-#             if column == "periode_construction":
-#                 unique_values = sorted(unique_values, reverse=True)
-
-#             # Si la colonne a un nombre limité de valeurs uniques, on utilise une liste déroulante
-#             if len(unique_values) <= 100:  # Par exemple, si moins de 20 valeurs uniques
-#                 options = [
-#                     {"label": str(val), "value": str(val)} for val in unique_values
-#                 ]
-#                 field = dbc.Row(
-#                     [
-#                         dbc.Label(column.replace("_", " ").capitalize(), width=4),
-#                         dbc.Col(
-#                             dcc.Dropdown(
-#                                 id=f"{column}-input",
-#                                 options=options,
-#                                 placeholder=f"Sélectionnez {column.replace('_', ' ')}",
-#                                 clearable=True,
-#                             ),
-#                             width=8,
-#                         ),
-#                     ],
-#                     className="mb-3",
-#                 )
-
-#             # Sinon, on utilise un champ texte
-#             else:
-#                 field = dbc.Row(
-#                     [
-#                         dbc.Label(column.replace("_", " ").capitalize(), width=4),
-#                         dbc.Col(
-#                             dbc.Input(
-#                                 type="text",
-#                                 id=f"{column}-input",
-#                                 placeholder=f"Entrez {column.replace('_', ' ')}",
-#                             ),
-#                             width=8,
-#                         ),
-#                     ],
-#                     className="mb-3",
-#                 )
-
-#             form_fields.append(field)
-
-#     return form_fields
-
-
-# Générer les champs de formulaire à partir du CSV pour les variables spécifiées
-# form_inputs = generate_form_fields(df, form_fields)
-
 
 # Fonction de création de la page avec le formulaire
 def create_pred_conso_page():
