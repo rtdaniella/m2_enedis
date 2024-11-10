@@ -5,128 +5,153 @@ import joblib
 import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import GridSearchCV, KFold, StratifiedKFold
+from sklearn.model_selection import KFold, RandomizedSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from utils.models.feature_selector import FeatureSelectorRegression
-from utils.models.preprocess import destroy_indexes, pca_app, preprocess_all_data, preprocess_pipeline, preprocess_splitted_data
+from utils.models.preprocess import destroy_indexes, preprocess_all_data, preprocess_pipeline, preprocess_splitted_data
+
+# Configuration du logger pour enregistrer les événements et erreurs
+logging.basicConfig(
+    filename='app_regression.log',  # Nom du fichier de log
+    filemode='w',        # Mode d'écriture du fichier de log (écrasera à chaque exécution)
+    level=logging.DEBUG, # Niveau des logs (DEBUG permet d'avoir tous les détails)
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'  # Format du log
+)
 
 def train_regressor():
-    # Import des données DPE sous forme de dataframes
+    """
+    Fonction d'entraînement du modèle de régression.
+    Cette fonction charge les données, les prépare, applique la sélection de caractéristiques,
+    et entraîne un modèle de régression avec RandomizedSearchCV pour optimiser les hyperparamètres.
+    Enfin, elle évalue le modèle et le sauvegarde dans un fichier.
+    """
+    
+    # Import des données DPE sous forme de dataframes depuis les URLs
     try:
         dfa = pd.read_csv('https://raw.githubusercontent.com/rtdaniella/m2_enedis/refs/heads/develop/src/files/dpe-v2-logements-existants.csv')
         dfn = pd.read_csv('https://raw.githubusercontent.com/rtdaniella/m2_enedis/refs/heads/develop/src/files/dpe-v2-logements-neufs.csv')
     except Exception as e:
         print("Erreur lors du chargement des données :", e)
         return
+    
+    # Log du début du prétraitement des données
     logging.info("Démarrage du prétraitement des données.")
     
-    # Prétraitement des données
+    # Prétraitement des données (nettoyage, transformation, etc.)
     df, df_all = preprocess_all_data(dfa, dfn)
-    X_train, X_test, y_train, y_test, num_features, cat_features = preprocess_splitted_data(df, 'conso_5_usages_e_finale',False)
+    # Préparation des données d'entraînement et de test
+    X_train, X_test, y_train, y_test, num_features, cat_features = preprocess_splitted_data(df, 'conso_5_usages_e_finale', False)
     X_train, X_test, y_train, y_test = destroy_indexes(X_train, X_test, y_train, y_test)
     
-    # Gérer les valeurs manquantes
-    # X_test, y_test = handle_missing_values_in_X_y_test(X_test, y_test, num_features, cat_features)
-
-    # Vérification des colonnes manquantes
+    # Vérification de la présence des colonnes nécessaires dans les jeux de données
     logging.info("Vérification des données de caractéristiques.")
     missing_num_features = [col for col in num_features if col not in X_train.columns]
     missing_cat_features = [col for col in cat_features if col not in X_train.columns]
     if missing_num_features or missing_cat_features:
         logging.error(f"Colonnes manquantes : {missing_num_features + missing_cat_features}")
         return
-    
-    # Définir le pipeline de prétraitement
+
+    logging.info("les variables numériques sont : %s", num_features)
+    logging.info("les variables catégorielles sont : %s", cat_features)
+    logging.info("les colonnes sont :  %s", X_train.columns)
+    # X_train.to_csv("data_regressor.csv", index=False)
+
+    # Préparation du pipeline de prétraitement avec normalisation et imputation
     logging.info("Préparation du pipeline de prétraitement.")
     preprocessor = preprocess_pipeline(X_train, num_features, cat_features)
-    feature_selector = FeatureSelectorRegression()  # Assurer que cette classe est bien définie dans ton code
-
-    # # Transformation des données d'entraînement
-    # logging.info("Transformation des données avec le pipeline de prétraitement.")
-    # X_train_transformed = preprocessor.fit_transform(X_train)
-
-    # # Sélectionner les features les plus importantes
-    # logging.info("Début de la sélection des caractéristiques.")
-    # feature_selector = FeatureSelectorRegression()  # Classe que nous avons définie
-    # feature_selector.fit(X_train_transformed, y_train)
     
-    # # Appliquer la sélection des caractéristiques
-    # X_train_selected = feature_selector.transform(X_train_transformed)
-    # logging.info(f"Forme des données après sélection des caractéristiques : {X_train_selected.shape}")
-
-    # # Transformation des données de test
-    # X_test_transformed = preprocessor.transform(X_test)
-    # X_test_selected = feature_selector.transform(X_test_transformed)
-    # logging.info(f"Forme des données de test après sélection des caractéristiques : {X_test_selected.shape}")
-
-    # # Vérification de la correspondance des dimensions
-    # if X_train_selected.shape[1] != X_test_selected.shape[1]:
-    #     logging.error("Les dimensions de X_train_selected et X_test_selected ne correspondent pas.")
-    #     return
-
-    # # Déterminer le nombre optimal de composants avec PCA après sélection des features
-    # logging.info("Détermination du nombre optimal de composants PCA.")
-    # optimal_components = pca_app(pd.DataFrame(X_test_selected))  # PCA sur X_train pour déterminer le nombre optimal de composants
+    # Sélection des caractéristiques importantes
+    feature_selector = FeatureSelectorRegression()  # Classe définie pour la sélection de features
     
-    # # Appliquer PCA sur X_train_selected
-    # pca = PCA(svd_solver='full', n_components=optimal_components)
-    # X_train_pca = pca.fit_transform(X_train_selected)  # Ajustement de PCA et transformation de X_train_selected
-    
-    # # Appliquer la même transformation PCA sur X_test_selected
-    # X_test_pca = pca.transform(X_test_selected)  # Transforme X_test_selected en utilisant les mêmes composants
-    
-    # logging.info(f"Forme des données d'entraînement après PCA : {X_train_pca.shape}")
-    # logging.info(f"Forme des données de test après PCA : {X_test_pca.shape}")
-
+   
     # Pipeline de modélisation avec PCA et RandomForestRegressor
     pipeline = Pipeline(steps=[
         ('preprocessor', preprocessor),
         ('feature_selection', feature_selector),
-        # ('pca', PCA(svd_solver='full')), 
+        ('pca', PCA(svd_solver='full')), 
         ('regressor', RandomForestRegressor())
     ])
     
-     # Déterminer le nombre optimal de composants avec PCA après sélection des features
-    # logging.info("Détermination du nombre optimal de composants PCA.")
-    # optimal_components = pca_app(pd.DataFrame(X_train))  # PCA sur X_train pour déterminer le nombre optimal de composants
+      # Log de l'étape de recherche des hyperparamètres
+    logging.info("Recherche des meilleurs hyperparamètres avec RandomizedSearchCV.")
+    
+    # Grille de paramètres pour RandomizedSearchCV
 
-    # Grille de paramètres pour GridSearchCV
+
     param_grid = {
-        'regressor__n_estimators': [200],
-        'regressor__max_depth': [30],
-        #  'pca__n_components': [4],
+        'regressor__n_estimators':[100, 200, 300],
+        'regressor__max_depth': [20, 30, None],
+        'pca__n_components': [3,5,8],
+        'regressor__min_samples_split': [2, 5, 10],                  # Nombre minimum d'échantillons pour diviser un noeud
+        'regressor__min_samples_leaf': [1, 2, 4],                    # Nombre minimum d'échantillons dans chaque feuille
+        'regressor__max_features': ['auto', 'sqrt', 'log2']         # Nombre de caractéristiques à considérer lors de la division
     }
 
-    grid_search = GridSearchCV(
-        estimator=pipeline,
-        param_grid=param_grid,
-        scoring='neg_mean_squared_error',  # Utilisation de l'erreur quadratique moyenne pour la régression
-        cv=KFold(n_splits=2),
-        n_jobs=-1,
-        verbose=1
+     # Application de RandomizedSearchCV avec un échantillonnage aléatoire des hyperparamètres
+    random_search = RandomizedSearchCV(
+        estimator=pipeline,                              # Estimator à ajuster
+        param_distributions=param_grid,                  # Grille des paramètres à tester
+        n_iter=20,                                       # Nombre d'itérations pour explorer le paramètre
+        scoring='neg_mean_squared_error',                # Mesure de performance (négatif de l'erreur quadratique moyenne)
+        cv=KFold(n_splits=5),                            # Validation croisée avec 5 plis
+        n_jobs=-1,                                       # Utilisation de tous les cœurs de CPU
+        verbose=1,                                       # Affichage de la progression
+        random_state=42                                  # Fixation du random_state pour la reproductibilité
     )
+
+    # Entraînement du modèle avec les données d'entraînement
+    random_search.fit(X_train, y_train)
+
+    # Log des meilleurs paramètres trouvés par RandomizedSearchCV
+    logging.info(f"Meilleurs paramètres trouvés : {random_search.best_params_}")
+
+    # Modèle final après recherche des meilleurs hyperparamètres
+    best_model = random_search.best_estimator_
     
-    # Fit avec les données d'entraînement (X_train_pca)
-    grid_search.fit(X_train, y_train)
+    # Prédictions sur les données de test
+    y_pred = best_model.predict(X_test)
 
-    # Meilleurs paramètres
-    print("Meilleurs paramètres trouvés :", grid_search.best_params_)
+    # Calcul des métriques de régression pour évaluer la performance du modèle
+    mse = mean_squared_error(y_test, y_pred)        # Erreur quadratique moyenne (MSE)
+    mae = mean_absolute_error(y_test, y_pred)        # Erreur absolue moyenne (MAE)
+    r2 = r2_score(y_test, y_pred)                    # Score R2, indicatif de la qualité de la prédiction
 
-    # Évaluation du modèle
-    best_model = grid_search.best_estimator_
-    y_pred = best_model.predict(X_test)  # Utilise X_test_pca après PCA
+    # Log des résultats de performance du modèle
+    logging.info(f"Mean Squared Error (MSE) : {mse}")
+    logging.info(f"Mean Absolute Error (MAE) : {mae}")
+    logging.info(f"R2 Score : {r2}")
 
-    # Métriques de régression
-    print("Mean Squared Error:", mean_squared_error(y_test, y_pred))
-    print("Mean Absolute Error (MAE) sur l'ensemble de test : {mean_absolute_error(y_test, y_pred)} kWh/an:" )
-    print("R2 Score:", r2_score(y_test, y_pred))
+     # Sauvegarde du meilleur modèle avec versionnage
+    model_version = 1
+    model_path = f'models/regressor_model_v{model_version}.joblib'
+    
+    # Vérifier la version existante du modèle et incrémenter
+    while os.path.exists(model_path):
+        model_version += 1
+        model_path = f'src/utils/models/regressor_model_v{model_version}.joblib'
+    
+    os.makedirs('models', exist_ok=True)
+    joblib.dump(random_search.best_estimator_, model_path, compress=3)  # Sauvegarder le modèle avec le pipeline optimal
+    logging.info(f"Modèle sauvegardé sous {model_path}")
+
 
 def load_regressor():
-    # Charger le modèle
-    model_path = 'models/regressor_model.joblib'
+    """
+    Charge le modèle complet de régression (pipeline) sauvegardé.
+    """
+    model_version = 1
+    model_path = f'src/utils/models/regressor_model_v{model_version}.joblib'
+
+    while os.path.exists(model_path):
+        model_version += 1
+        model_path = f'src/utils/models/regressor_model_v{model_version}.joblib'
+
+    model_path = f'src/utils/models/regressor_model_v{model_version - 1}.joblib'
+
     if not os.path.exists(model_path):
         print("Erreur : le modèle n'a pas été trouvé.")
         return None
-    return joblib.load(model_path)
+
+    return joblib.load(model_path , mmap_mode='r')

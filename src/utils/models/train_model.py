@@ -2,7 +2,7 @@
 from classifier_model import train_classifier
 from regressor_model import train_regressor
 
-
+# Appeler la fonction d'entraînement pour le modèle de classification
 print("Entraînement du modèle de classification...")
 train_classifier()  # Cette fonction entraînera le modèle de classification et le sauvegardera
 
