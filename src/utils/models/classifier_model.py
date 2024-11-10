@@ -3,6 +3,7 @@ import os
 import sys
 import joblib
 import pandas as pd
+import logging
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
@@ -14,7 +15,7 @@ from utils.models.preprocess import (
     destroy_indexes, feature_selection_classification, pca_app, preprocess_all_data,
     preprocess_pipeline, preprocess_splitted_data
 )
-import logging
+
 
 # Configuration de base du logger pour suivre les événements de l'exécution
 logging.basicConfig(

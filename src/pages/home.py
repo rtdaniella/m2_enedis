@@ -88,12 +88,61 @@ def create_home_page():
                         }
                     ),
                     html.Div(
-                        "Contenu du bloc droit",
+                        [
+                            html.Div(
+                                [
+                                    html.H4("Nos actualités", style={"textAlign": "center"}),
+                                    html.P("Nos experts en Diagnostic de Performance Énergétique analysent et optimisent les consommations énergétiques, offrant des solutions adaptées à chaque projet.", style={"textAlign": "center", "fontWeight": "bold"}),
+                                    html.Img(
+                                        src="assets/images/photo1.jpg",  # Remplacez par le chemin de votre image
+                                        style={
+                                            "display": "block",
+                                            "margin": "10px auto",  # Centrer l'image
+                                            "maxWidth": "100%",  # Rendre l'image responsive
+                                            "height": "200px"  # Ajuster la hauteur
+                                        }
+                                    ),
+                                ],
+                                style={"marginBottom": "20px"}
+                            ),
+                            html.Div(
+                                [
+                                    html.P("L'équipe GreenTech Solutions s'engage à fournir des conseils sur mesure pour une gestion énergétique plus efficace, contribuant à la transition énergétique.", style={"textAlign": "center", "fontWeight": "bold"}),
+                                    html.Img(
+                                        src="assets/images/photo2.jpg",  # Remplacez par le chemin de votre image
+                                        style={
+                                            "display": "block",
+                                            "margin": "10px auto",  # Centrer l'image
+                                            "maxWidth": "100%",
+                                            "height": "200px"
+                                        }
+                                    ),
+                                ],
+                                style={"marginBottom": "20px"}
+                            ),
+                            html.Div(
+                                [
+                                    html.P("Sur le terrain, nos techniciens réalisent des inspections rigoureuses pour évaluer les performances énergétiques des bâtiments et garantir leur conformité aux normes.", style={"textAlign": "center", "fontWeight": "bold"}),
+                                    html.Img(
+                                        src="assets/images/photo3.jpg",  # Remplacez par le chemin de votre image
+                                        style={
+                                            "display": "block",
+                                            "margin": "10px auto",  # Centrer l'image
+                                            "maxWidth": "100%",
+                                            "height": "200px"
+                                        }
+                                    ),
+                                ],
+                                style={"marginBottom": "20px"}
+                            ),
+                        ],
                         style={
                             "backgroundColor": "lightgrey",
                             "padding": "20px",
                             "boxShadow": "0 4px 8px rgba(0, 0, 0, 0.2)",
-                            "flex": "1"
+                            "flex": "1",
+                            "overflowY": "auto",  # Pour activer le défilement vertical
+                            "height": "415px"  # Hauteur fixe pour le bloc droit
                         }
                     )
                 ],
