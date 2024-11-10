@@ -5,9 +5,9 @@ from components.navbar import create_sidenav
 from components.footer import create_footer
 from pages.home import create_home_page
 from pages.about import create_about_page
-from pages.context import create_context_page 
-from pages.charts import create_charts_page  
-from pages.map import create_map_page  
+from pages.context import create_context_page
+from pages.charts import create_charts_page
+from pages.map import create_map_page
 from pages.not_found_404 import create_not_found_page
 from pages.prediction_dpe import create_pred_dpe_page
 from pages.prediction_conso import create_pred_conso_page
@@ -31,6 +31,7 @@ app.title = "GreenTech Solutions"
 navbar = create_sidenav()  # Composant de la barre de navigation latérale
 footer = create_footer()  # Composant du pied de page
 
+
 # Layout de l'application : structure HTML de la page
 app.layout = html.Div(
     [
@@ -40,6 +41,7 @@ app.layout = html.Div(
         footer,  # Pied de page
     ]
 )
+
 
 # Callback pour afficher la page en fonction de l'URL
 @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
@@ -127,3 +129,4 @@ def update_prediction_conso(n_clicks, *inputs):
 # Exécution de l'application Dash
 if __name__ == "__main__":
     app.run_server(debug=False)  # Lancer le serveur Dash en mode debug pour faciliter le développement
+
