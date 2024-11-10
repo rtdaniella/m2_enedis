@@ -126,4 +126,4 @@ def update_prediction_conso(n_clicks, *inputs):
 
 # Exécution de l'application Dash
 if __name__ == "__main__":
-    app.run_server(debug=True)  # Lancer le serveur Dash en mode debug pour faciliter le développement
+    app.run_server(debug=False)  # Lancer le serveur Dash en mode debug pour faciliter le développement

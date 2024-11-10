@@ -41,7 +41,10 @@ Here we provide a detailed look at the key submodules in the `src` package:
 For more information on these modules, follow the links in the `src` section above.
 
 Links to key modules:
+
 - For detailed documentation on the `src.app` module, visit the :doc:`src.app <src.app>`.
+
 - Explore the `src.components` package, including the footer and navbar components, at :doc:`src.components <src.components>`.
+
 - Learn more about utility functions and models in the `src.utils` package at :doc:`src.utils <src.utils>`.
 
